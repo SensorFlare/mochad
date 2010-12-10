@@ -1,0 +1,166 @@
+mochad is a Linux TCP gateway daemon for the X10 CM15A RF (radio frequency) and
+PL (power line) controller and the CM19A RF controller. 
+
+mochad stands for Multiple Online Controllers for Home Automation Daemon.
+
+== Build it
+
+make builds mochad on Ubuntu 10.04 and 10.10. The libusb-1.0 development files
+are required. To install,
+
+    sudo apt-get install libusb-1.0-0-dev
+
+Building for embedded platforms such as OpenWrt is TBD.
+
+== Run it
+
+Connect CM15A or CM19A.
+
+Run mochad as root (that is, sudo ./mochad). mochad will detach from the
+terminal and continue to run in the background. The only command line option so
+far is -d which will cause mochad to run in the foreground and produce debug
+output.
+
+== Use it
+
+Connect to mochad using netcat. For example, 
+
+    nc localhost 1099
+
+You can connect to mochad from another host by specifying the IP of the host
+running mochad. netcat is available for Windows at
+<http://joncraton.org/blog/netcat-for-windows>.
+
+Everything sent by mochad appears on netcat standard output. In the simplest
+use case, mochad/netcat can be used to see X10 PL and RF activity. For example,
+run mochad on one host with a CM15A then connect to it using netcat from a
+netbook. Walk around with various X10 RF remote controls and the netbook to see
+which remotes work from various locations.
+
+Sample output:
+
+12/07 20:49:10 Rx RF HouseUnit: C3 Func: Off
+12/07 20:49:10 Tx PL HouseUnit: C3
+12/07 20:49:10 Tx PL House: C Func: Off
+12/07 20:49:10 Rx RF HouseUnit: C3 Func: Off
+12/07 20:49:10 Tx PL HouseUnit: C3
+12/07 20:49:10 Tx PL House: C Func: Off
+12/07 20:49:17 Rx RFSEC Addr: 0x11 Func: Lights_Off_SH624
+12/07 20:49:17 Rx RFSEC Addr: 0x11 Func: Lights_Off_SH624
+12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+
+Everything sent to netcat standard input is sent to mochad. The following is a
+brief list of mochad commands.
+
+    pl a1 [on|off]
+    pl a1 [dim|bright] 0..31
+    pl a1 xdim 0..255
+
+    pl a1
+    pl a2
+    pl a [on|off|dim|bright|xdim|all_lights_on|all_lights_off|all_units_off]
+
+    rf a1 [on|off|dim|bright]
+
+    st  -- show device status including RF security devices
+
+By default, received RF X10 commands are repeated on the PL interface for all
+house codes. This can be changed using the rftopl command (RF to PL repeater).
+
+    rftopl *    -- enable all house codes (default)
+    rftopl abc  -- enable for house codes A, B, and C. Disable for all others.
+    rftopl 0    -- disable for all house codes. This is useful if more than
+                    one CM15A is in use. Leaving both enabled will result in 
+                    PL collisions and redundant commands.
+
+== Multiple controllers
+
+The Perl program mochamon.pl shows how to monitor more than one instance of
+mochad. It is possible to create a master home automation master which talks to
+more than one X10 controller. For example, a mocha master could receive RF
+commands from controller A then send PL commands on controller B in a detached
+building.
+
+== Command line X10 control
+
+Command line control is useful for controlling devices from cron or CGI programs.
+
+    $ echo "pl a all_lights_off" | nc localhost 1099
+
+More generally, create a file name x10cmd with the following
+
+    echo "$@" | nc localhost 1099
+
+Make the file executable.
+
+    $ chmod +x x10cmd
+
+Run x10cmd with command line parameters to control X10 devices.
+
+    $ ./x10cmd pl a all_lights_off
+
+== Web Interface
+
+The cgi/ sub-directory holds a simple Perl CGI web application that uses
+mochad. The  interface is designed for small hand held devices over slow
+connections (not broadband) so the web pages are very basic and small.
+No GIFs or JPGs are used. To accomodate older devices with limited web browsers,
+CSS, Javascript, or AJAX are not used. The web applications has buttons at
+the top to send commands to mochad. The remainder shows status information
+for three hosts running mochad.
+
+== Hardware
+
+X10 controllers: CM15A and CM19A
+
+Various X10 devices that have been tested with mochad:
+    AM486, LM465 softstart, PAM02, RR501 (2 way), DS10A, MS10A, KR10A, SH624,
+    KR19A
+
+NOTE: CM15A macros and timers are NOT supported. For best results, use AHP
+(ActiveHome Pro) to clear interface memory and disable the internal RF to PL
+repeater. This ensures the CM15A behaves like a transceiver.
+
+== Files
+
+    *.c *.h     -- C source files
+    makefile    -- make configuration file
+    mochamon.pl -- Perl program showing how to connect to three instance of 
+                    mochad and dumping out the output to standard out.
+    cgi/        -- Sample Perl CGI utilizing more than one mochad
+
+== Acknowledgments
+
+The Perl CGI scripts uses the venerable cgi-lib.pl copyright Steven E. Brenner.
+cgi-lib is simpler and smaller than CGI.pm which is appropriate for small
+embedded systems such as WiFi routers. 
+
+For OpenWrt based systems, using LuCi would make more sense than Perl since
+LuCi is already present in the system. However, the Perl CGI scripts work fine
+with lighttpd on OpenWrt.
+
+== References
+
+The following documents were useful in development of this program.
+
+X10 Power Line Protocol
+
+    <http://software.x10.com/pub/manuals/xtc798.doc>
+    <http://software.x10.com/pub/manuals/xtc798.pdf>
+    <http://software.x10.com/pub/manuals/xtdcode.pdf>
+
+X10 RF including RF Security Protocol
+
+    <http://www.edcheung.com/automa/rf.txt>
+
+X10 CM11A Protocol
+
+    <http://software.x10.com/pub/manuals/cm11a_protocol.txt>
+
+Linux Daemon HowTo
+
+    <http://www-theorie.physik.unizh.ch/~dpotter/howto/daemonize>
+
