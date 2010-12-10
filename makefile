@@ -20,7 +20,7 @@ SHELL = /bin/bash
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-RELDIR=mochad-0.1.0
+RELDIR=mochad-0.1.1
 OBJS=mochad.o encode.o decode.o x10state.o x10_write.o global.o
 SRCS=mochad.c global.c global.h encode.c encode.h decode.c decode.h \
 	x10state.c x10state.h x10_write.c x10_write.h makefile COPYING \
