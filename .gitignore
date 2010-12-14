@@ -3,4 +3,15 @@
 tags
 *.out
 *.o
-mochad
+.deps/
+autom4te.cache/
+autoscan.log
+config.log
+config.status
+depcomp
+missing
+aclocal.m4
+Makefile
+Makefile.in
+config.h*
+configure

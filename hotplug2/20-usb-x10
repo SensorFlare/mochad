@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Looking for X10 CM15A and CM19A. USB vendor id 0bc7 and USB product ids 0001 
+# and 0002, respectively. usbutils must be installed to use the lsusb command.
+
+case "$ACTION" in
+    add)
+        if lsusb | grep "0bc7:000[1|2] X10"
+        then
+            /etc/init.d/mochad start
+        fi
+        ;;
+esac

@@ -263,7 +263,7 @@ static int find_cm15a(struct libusb_device_handle **devhptr)
     }
     r = libusb_claim_interface(*devhptr, 0);
     if (r == 0) {
-        syslog(LOG_NOTICE, "Found CM15A");
+        syslog(LOG_NOTICE, (Cm19a) ? "Found CM19A" : "Found CM15A");
         return 0;
     }
     syslog(LOG_EMERG, "usb_claim_interface failed %d", r);
@@ -284,7 +284,7 @@ static int find_cm15a(struct libusb_device_handle **devhptr)
         syslog(LOG_EMERG, "claim interface failed again %d", r);
         return -EIO;
     }
-    syslog(LOG_NOTICE, "Found CM15A");
+    syslog(LOG_NOTICE, (Cm19a) ? "Found CM19A" : "Found CM15A");
     return 0;
 }
 
@@ -425,8 +425,8 @@ static int mydaemon(void)
 #endif
     r = find_cm15a(&Devh);
     if (r < 0) {
-        syslog(LOG_EMERG, "Could not find/open CM15A %d", r);
-        dbprintf("Could not find/open CM15A %d\n", r);
+        syslog(LOG_EMERG, "Could not find/open CM15A/CM19A %d", r);
+        dbprintf("Could not find/open CM15A/CM19A %d\n", r);
         goto out;
     }
 
@@ -559,7 +559,7 @@ static int mydaemon(void)
             }
         }
     }
-    syslog(LOG_NOTICE, "detaching CM15A");
+    syslog(LOG_NOTICE, (Cm19a) ? "detaching CM19A" : "detaching CM15A");
 
     if (IntrOut_transfer) {
         r = libusb_cancel_transfer(IntrOut_transfer);
