@@ -12,6 +12,7 @@ depcomp
 missing
 aclocal.m4
 Makefile
+!opkg/Makefile
 Makefile.in
 config.h*
 configure

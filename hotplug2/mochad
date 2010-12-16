@@ -4,7 +4,7 @@ START=50
 SSD=start-stop-daemon
 NAME=mochad
 PIDF=/var/run/$NAME.pid
-PROG=/usr/local/bin/$NAME
+PROG=/usr/sbin/$NAME
 
 start() {
 	$SSD -S -m -p $PIDF -q -x $PROG &

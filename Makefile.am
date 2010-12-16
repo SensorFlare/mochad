@@ -2,7 +2,8 @@ bin_PROGRAMS = mochad
 mochad_SOURCES = mochad.c decode.c encode.c global.c x10state.c x10_write.c \
 		 decode.h encode.h global.h x10state.h x10_write.h
 EXTRA_DIST = udev/91-usb-x10-controllers.rules hotplug2/20-usb-x10 hotplug2/mochad \
-	     cgi/x10.pl cgi/netcat.pl cgi/getsensors.pl cgi/cgi-lib.pl mochamon.pl
+	     cgi/x10.pl cgi/netcat.pl cgi/getsensors.pl cgi/cgi-lib.pl mochamon.pl \
+	     opkg/Makefile
 
 install-exec-hook:
 	if test -d /etc/udev/rules.d ; then \

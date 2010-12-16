@@ -5,21 +5,27 @@ mochad stands for Multiple Online Controllers for Home Automation Daemon.
 
 == Build it
 
-make builds mochad on Ubuntu 10.04 and 10.10. The libusb-1.0 development files
-are required. To install,
+mochad compiles and runs on Ubuntu 10.04 and 10.10. The libusb-1.0 development
+files are required. To install,
 
     sudo apt-get install libusb-1.0-0-dev
 
-Building for embedded platforms such as OpenWrt is TBD.
+The usual pattern for building the code applies.
+
+    tar xzf mochad-...tar.gz
+    cd mochad-...
+    ./configure
+    make
+    sudo make install
+
+Please see http://sourceforge.net/apps/mediawiki/mochad/index.php?title=Main_Page
+for details on building for OpenWrt.
 
 == Run it
 
-Connect CM15A or CM19A.
-
-Run mochad as root (that is, sudo ./mochad). mochad will detach from the
-terminal and continue to run in the background. The only command line option so
-far is -d which will cause mochad to run in the foreground and produce debug
-output.
+Plugging a CM15A or CM19A should launch mochad. There no need to run mochad
+by hand or run it from /etc/rc.local. mochad is launched by a udev rule that
+matches the CM15A and CM19A USB vendor and product ID codes.
 
 == Use it
 
@@ -39,18 +45,18 @@ which remotes work from various locations.
 
 Sample output:
 
-12/07 20:49:10 Rx RF HouseUnit: C3 Func: Off
-12/07 20:49:10 Tx PL HouseUnit: C3
-12/07 20:49:10 Tx PL House: C Func: Off
-12/07 20:49:10 Rx RF HouseUnit: C3 Func: Off
-12/07 20:49:10 Tx PL HouseUnit: C3
-12/07 20:49:10 Tx PL House: C Func: Off
-12/07 20:49:17 Rx RFSEC Addr: 0x11 Func: Lights_Off_SH624
-12/07 20:49:17 Rx RFSEC Addr: 0x11 Func: Lights_Off_SH624
-12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
-12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
-12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
-12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+    12/07 20:49:10 Rx RF HouseUnit: C3 Func: Off
+    12/07 20:49:10 Tx PL HouseUnit: C3
+    12/07 20:49:10 Tx PL House: C Func: Off
+    12/07 20:49:10 Rx RF HouseUnit: C3 Func: Off
+    12/07 20:49:10 Tx PL HouseUnit: C3
+    12/07 20:49:10 Tx PL House: C Func: Off
+    12/07 20:49:17 Rx RFSEC Addr: 0x11 Func: Lights_Off_SH624
+    12/07 20:49:17 Rx RFSEC Addr: 0x11 Func: Lights_Off_SH624
+    12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+    12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+    12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
+    12/07 20:49:37 Rx RFSEC Addr: C6:1B:00 Func: Motion_alert_MS10A
 
 Everything sent to netcat standard input is sent to mochad. The following is a
 brief list of mochad commands.
@@ -141,6 +147,9 @@ embedded systems such as WiFi routers.
 For OpenWrt based systems, using LuCi would make more sense than Perl since
 LuCi is already present in the system. However, the Perl CGI scripts work fine
 with lighttpd on OpenWrt.
+
+This project in not in any way affliated with X10 Corp. (www.x10.com). Do
+not contact them about this driver since they know nothing about it.
 
 == References
 
