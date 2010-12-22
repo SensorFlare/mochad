@@ -400,6 +400,8 @@ static const struct SecEventRec SecRemoteKeyNames[] = {
     {0x22, "Panic_SH624"},
     {0x42, "Lights_On_SH624"},
     {0xC2, "Lights_Off_SH624"},
+    {0x04, "Motion_alert_SP554A"},   //DG
+    {0x84, "Motion_normal_SP554A"},  //DG
     {0x00, NULL},
 };
 

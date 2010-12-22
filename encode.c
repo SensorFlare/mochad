@@ -446,7 +446,7 @@ static int pl_tx_housefunc(int fd, int house, int func, int param)
             /* The remaining two bytes are reversed */
             *xmitptr++ = 0x06;
             *xmitptr = *(xmitptr+1);
-            *xmitptr++;
+            xmitptr++;
             *xmitptr = 0x06 | dims;
             hexdump(xmitptr-2, 3);
             return x10_write(xmitptr-2, 3);

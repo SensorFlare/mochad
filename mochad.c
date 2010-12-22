@@ -38,7 +38,6 @@
 #include <time.h>
 #include <errno.h>
 #include <unistd.h>
-#include "config.h"
 
 /**** system log ****/
 #include <syslog.h>

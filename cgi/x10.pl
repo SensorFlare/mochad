@@ -121,7 +121,7 @@ sub paintform
         </form>
 EndOfForm
     getsensors($server, 1099, $hostname);
-    getsensors($server2, 1099, $hostname2);
+    #getsensors($server2, 1099, $hostname2);
     getsensors($server3, 1099, $hostname3);
 }
 
