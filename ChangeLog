@@ -1,0 +1,18 @@
+mochad-0.1.2
+
+    * Fix device name in log messages. CM19A was reported as CM15A.
+    * Add install option that makes the controllers hot pluggable. udev in
+    Ubunutu and hotplug2 in OpenWrt
+    * Convert to use autoconf and automake.
+    * Update mochad wiki pages with command and event reference. Also add
+    instructions for building with OpenWrt.
+
+mochad-0.1.3
+
+    * Change the method for sending dim/bright commands so it matches AHP
+    The new method uses 3 bytes instead of 2. This seems to work better
+    with LM465 soft-start devices. xdim works much better and is easier to use
+    but does not work with all lamp modules.
+    * Add example client programs in Perl and bash.
+    * Add --version command line parameter.
+

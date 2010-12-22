@@ -82,6 +82,9 @@ house codes. This can be changed using the rftopl command (RF to PL repeater).
                     one CM15A is in use. Leaving both enabled will result in 
                     PL collisions and redundant commands.
 
+Please see http://sourceforge.net/apps/mediawiki/mochad/index.php?title=Main_Page
+for more details on command and event messages.
+
 == Multiple controllers
 
 The Perl program mochamon.pl shows how to monitor more than one instance of
@@ -118,6 +121,9 @@ CSS, Javascript, or AJAX are not used. The web applications has buttons at
 the top to send commands to mochad. The remainder shows status information
 for three hosts running mochad.
 
+Please see http://sourceforge.net/apps/mediawiki/mochad/index.php?title=Main_Page
+for more details.
+
 == Hardware
 
 X10 controllers: CM15A and CM19A
@@ -133,7 +139,6 @@ repeater. This ensures the CM15A behaves like a transceiver.
 == Files
 
     *.c *.h     -- C source files
-    makefile    -- make configuration file
     mochamon.pl -- Perl program showing how to connect to three instance of 
                     mochad and dumping out the output to standard out.
     cgi/        -- Sample Perl CGI utilizing more than one mochad

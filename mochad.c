@@ -38,6 +38,7 @@
 #include <time.h>
 #include <errno.h>
 #include <unistd.h>
+#include "config.h"
 
 /**** system log ****/
 #include <syslog.h>
@@ -594,9 +595,20 @@ out:
     return r >= 0 ? r : -r;
 }
 
+static void printcopy(void)
+{
+    printf("Copyright (C) 2010 Brian Uechi.\n");
+    printf("\n");
+    printf("This program comes with NO WARRANTY.\n");
+    printf("You may redistribute copies of this program\n");
+    printf("under the terms of the GNU General Public License.\n");
+    printf("For more information about these matters, see the file named COPYING.\n");
+    fflush(NULL);
+}
+
 int main(int argc, char *argv[])
 {
-    int rc;
+    int rc, i;
     int foreground=0;
 
     /* Initialize logging */
@@ -604,9 +616,18 @@ int main(int argc, char *argv[])
     syslog(LOG_NOTICE, "starting");
 
     /* Process command line args */
-    if (argc > 1) {
-        foreground = !strcmp(argv[1], "-d");
-        dbprintf("foreground %d\n", foreground);
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0)
+            foreground = 1;
+        else if (strcmp(argv[i], "--version") == 0) {
+            printf("%s\n", PACKAGE_STRING);
+            printcopy();
+            exit(0);
+        }
+        else {
+            printf("unknown option %s\n", argv[i]);
+            exit(-1);
+        }
     }
 
     /* Daemonize */

@@ -416,6 +416,7 @@ static int pl_tx_housefunc(int fd, int house, int func, int param)
     switch (func) {
         case FUNC_DIM:
         case FUNC_BRIGHT:
+#if 0
             buf[1] = 0x03;
             nbuf = 5;  /* Decode 5 bytes */
             buf[2] = 0x02;
@@ -430,6 +431,26 @@ static int pl_tx_housefunc(int fd, int house, int func, int param)
             *xmitptr = 0x06 | dims;
             hexdump(xmitptr, 2);
             return x10_write(xmitptr, 2);
+#else
+            buf[1] = 0x03;
+            nbuf = 5;  /* Decode 5 bytes */
+            buf[2] = 0x02;
+            dims = ((param & 0x1F) << 3);
+            buf[3] = dims | 0x01;
+            buf[4] = x10housecode[house] << 4 | func;
+            xmitptr = &buf[2];
+            cm15a_decode_plc(-1, buf, nbuf);
+            dbprintf("%d:", nbuf); hexdump(buf, nbuf);
+
+            /* Transmit using the 0x06 prefix just like AHP */
+            /* The remaining two bytes are reversed */
+            *xmitptr++ = 0x06;
+            *xmitptr = *(xmitptr+1);
+            *xmitptr++;
+            *xmitptr = 0x06 | dims;
+            hexdump(xmitptr-2, 3);
+            return x10_write(xmitptr-2, 3);
+#endif
         case FUNC_EXTENDED_DIM:
             buf[1] = 0x05;
             buf[2] = 0x07;
