@@ -600,7 +600,7 @@ int processcommandline(int fd, char *aLine)
     unsigned char x10bytes8[8];
     size_t len;
     unsigned long rfaddr;
-    int rf8bitaddr;
+    int rf8bitaddr, rfcamkey;
 
     strupper(aLine);
     dbprintf("%lu:%s\n", (unsigned long)strlen(aLine), aLine);
@@ -657,17 +657,26 @@ int processcommandline(int fd, char *aLine)
             rfsec_tx(fd, rf8bitaddr, rfaddr, func);
         }
         else if (strcmp(command, "RFCAM") == 0) {
+            /* Unit number is ignored */
+            house = getdeviceaddr(&unit);
+            if (house < 0) return -1;
             arg1 = strtok(NULL, " ");
-            dbprintf("rfcam arg1 %s\n", arg1);
-            x10bytes8[0] = 0xeb;
-            len = findCamRemoteCommand(arg1, x10bytes8+1, sizeof(x10bytes8)-1);
-            if (len > 0) {
-                len++;
-                hexdump(x10bytes8, len);
+            if (arg1 == NULL || *arg1 == '\0') return -1;
+            dbprintf("rfcam house keyname %d %s\n", house, arg1);
+
+            rfcamkey = findCamRemoteCommand(arg1);
+            if (rfcamkey > 0) {
+                house = x10housecoderf[house] << 4;
+                x10bytes8[0] = 0xeb;
+                x10bytes8[1] = 0x14;
+                x10bytes8[2] = (house + (rfcamkey - 0x2B)) & 0xFF;
+                x10bytes8[3] = rfcamkey;
+                x10bytes8[4] = house;
+                hexdump(x10bytes8, 5);
                 if (Cm19a)
-                    x10_write(x10bytes8+1, len-1);
+                    x10_write(x10bytes8+1, 4);
                 else
-                    x10_write(x10bytes8, len);
+                    x10_write(x10bytes8, 5);
             }
             else {
                 sockprintf(fd, "Invalid command %s\n", arg1);

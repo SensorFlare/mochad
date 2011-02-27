@@ -411,78 +411,87 @@ struct CamRemoteRec {
     const char *name;
 };
 
-static const struct CamRemoteRec CameraRemoteNames[] = {
-    {4, {0x14,0x47,0x62,0x10}, "CAMUP"},
-    {4, {0x14,0x48,0x63,0x10}, "CAMDOWN"},
-    {4, {0x14,0x45,0x60,0x10}, "CAMLEFT"},
-    {4, {0x14,0x46,0x61,0x10}, "CAMRIGHT"},
-    {4, {0x14,0x51,0x6C,0x10}, "CAMCENTER"},
-    {4, {0x14,0x53,0x6E,0x10}, "CAMSWEEP"},
-    {4, {0x14,0x49,0x64,0x10}, "CAMPRESET1"},
-    {4, {0x14,0x4B,0x66,0x10}, "CAMPRESET2"},
-    {4, {0x14,0x4D,0x68,0x10}, "CAMPRESET3"},
-    {4, {0x14,0x4F,0x6A,0x10}, "CAMPRESET4"},
-    {4, {0x14,0x39,0x54,0x10}, "CAMPRESET5"},
-    {4, {0x14,0x3B,0x56,0x10}, "CAMPRESET6"},
-    {4, {0x14,0x3D,0x58,0x10}, "CAMPRESET7"},
-    {4, {0x14,0x3F,0x5A,0x10}, "CAMPRESET8"},
-    {4, {0x14,0x41,0x5C,0x10}, "CAMPRESET9"},
-    {4, {0x14,0x4A,0x65,0x10}, "CAMEDITPRESET1"},
-    {4, {0x14,0x4C,0x67,0x10}, "CAMEDITPRESET2"},
-    {4, {0x14,0x4E,0x69,0x10}, "CAMEDITPRESET3"},
-    {4, {0x14,0x50,0x6B,0x10}, "CAMEDITPRESET4"},
-    {4, {0x14,0x3A,0x55,0x10}, "CAMEDITPRESET5"},
-    {4, {0x14,0x3C,0x57,0x10}, "CAMEDITPRESET6"},
-    {4, {0x14,0x3E,0x59,0x10}, "CAMEDITPRESET7"},
-    {4, {0x14,0x40,0x5B,0x10}, "CAMEDITPRESET8"},
-    {4, {0x14,0x42,0x5C,0x10}, "CAMEDITPRESET9"},
-    {0, {0x00}, NULL}
+static const unsigned char *RFCAMKeyCodes[] = {
+    /* 0x54 */ "CAMPRESET5",
+    /* 0x55 */ "CAMEDITPRESET5",
+    /* 0x56 */ "CAMPRESET6",
+    /* 0x57 */ "CAMEDITPRESET6",
+    /* 0x58 */ "CAMPRESET7",
+    /* 0x59 */ "CAMEDITPRESET7",
+    /* 0x5A */ "CAMPRESET8",
+    /* 0x5B */ "CAMEDITPRESET8",
+    /* 0x5C */ "CAMPRESET9",
+    /* 0x5D */ "CAMEDITPRESET9",
+    /* 0x5E */ NULL,
+    /* 0x5F */ NULL,
+    /* 0x60 */ "CAMLEFT",
+    /* 0x61 */ "CAMRIGHT",
+    /* 0x62 */ "CAMUP",
+    /* 0x63 */ "CAMDOWN",
+    /* 0x64 */ "CAMPRESET1",
+    /* 0x65 */ "CAMEDITPRESET1",
+    /* 0x66 */ "CAMPRESET2",
+    /* 0x67 */ "CAMEDITPRESET2",
+    /* 0x68 */ "CAMPRESET3",
+    /* 0x69 */ "CAMEDITPRESET3",
+    /* 0x6A */ "CAMPRESET4",
+    /* 0x6B */ "CAMEDITPRESET4",
+    /* 0x6C */ "CAMCENTER",
+    /* 0x6D */ NULL,
+    /* 0x6E */ "CAMSWEEP"
 };
 
-// Given binary data packet from X10 controller (CM15A or CM19A), 
-// find matching human-readable name for remote button
+#define RFCAMENTRIES    (sizeof(RFCAMKeyCodes)/sizeof(RFCAMKeyCodes[0]))
+
+/* Given binary data packet from X10 controller (CM15A or CM19A), 
+ * find matching human-readable name for remote button
+ * 0x14 Command type:RF Camera
+ * 0x47 (house code + (keycode - 0x2B)) & 0xFF
+ * 0x62 key code (RFCAMKeyCodes)
+ * 0x10 house code (HouseUnitTableRF)
+ */
 
 static const char *findCamRemoteName(const unsigned char *camcommand, size_t commandlen)
 {
-    const struct CamRemoteRec *p;
+    static char remotekeyname[32];
+    int keycode, housecode, checksum;
+    unsigned char mychecksum;
+    int keyindex;
 
-    p = CameraRemoteNames;
-    while (p->commandlen) {
-        if (commandlen == p->commandlen) {
-            if (memcmp(p->command, camcommand, commandlen) == 0)
-            {
-                return p->name;
-            }
-        }
-        p++;
-    }
-    return NULL;
+    if (camcommand == NULL || commandlen < 4 || *camcommand++ != 0x14)
+        return NULL;
+    
+    checksum = *camcommand++;
+    keycode = *camcommand++;
+    housecode = (*camcommand >> 4) & 0x0F;
+
+    mychecksum = ((housecode << 4) + (keycode - 0x2B)) & 0xFF;
+    if (checksum != mychecksum) return NULL;
+    
+    keyindex = keycode - 0x54;
+    if ( (keyindex < 0) || (keyindex >= RFCAMENTRIES) )
+        return NULL;
+    if (RFCAMKeyCodes[keyindex] == NULL) return NULL;
+    snprintf(remotekeyname, sizeof(remotekeyname), "%c %s",
+            HouseUnitTableRF[housecode], RFCAMKeyCodes[keyindex]);
+    return remotekeyname;
 }
-
 
 // Given human-readable name for remote button, find 
 // binary data packet to be sent to X10 controller (CM15A or CM19A)
 
-int findCamRemoteCommand(const char *keyname, unsigned char *command, size_t commandlen)
+int findCamRemoteCommand(const char *keyname)
 {
-    const struct CamRemoteRec *p;
+    const char *p;
+    int keyindex;
 
-    p = CameraRemoteNames;
-    dbprintf("findCamRemoteCommand(%s,%p,%u)\n", keyname, command, commandlen);
-    while (p->commandlen) {
-        dbprintf("%s %u\n", p->name, p->commandlen);
-        if (strcmp(keyname, p->name) == 0) {
-            if (commandlen >= p->commandlen) {
-                memcpy(command, p->command, p->commandlen);
-                return p->commandlen;
-            }
-            return 0;
-        }
-        p++;
+    if (keyname == NULL) return -1;
+    for (keyindex = 0; keyindex < RFCAMENTRIES; keyindex++) {
+        p = RFCAMKeyCodes[keyindex];
+        if (p && strcmp(keyname, p) == 0) return keyindex + 0x54;
     }
-    return 0;
+    return -1;
 }
-
 
 /*
  * 5D 29 7F 70 8C 73 CA 00 from MS10,DS10,KR10 17(?) bit RF address 
