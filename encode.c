@@ -178,12 +178,12 @@ static const unsigned char x10housecoderf[] = {
     0x05,   /* House code D */
     0x08,   /* House code E */
     0x09,   /* House code F */
-    0x10,   /* House code G */
-    0x11,   /* House code H */
-    0x14,   /* House code I */
-    0x15,   /* House code J */
-    0x12,   /* House code K */
-    0x13,   /* House code L */
+    0x0a,   /* House code G */
+    0x0b,   /* House code H */
+    0x0e,   /* House code I */
+    0x0f,   /* House code J */
+    0x0c,   /* House code K */
+    0x0d,   /* House code L */
     0x00,   /* House code M */
     0x01,   /* House code N */
     0x02,   /* House code O */
@@ -673,6 +673,7 @@ int processcommandline(int fd, char *aLine)
                 x10bytes8[3] = rfcamkey;
                 x10bytes8[4] = house;
                 hexdump(x10bytes8, 5);
+                cm15a_decode_rf(-1, x10bytes8, 5);
                 if (Cm19a)
                     x10_write(x10bytes8+1, 4);
                 else

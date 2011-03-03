@@ -1,11 +1,13 @@
-mochad-0.1.2
+mochad-0.1.5
 
-    * Fix device name in log messages. CM19A was reported as CM15A.
-    * Add install option that makes the controllers hot pluggable. udev in
-    Ubunutu and hotplug2 in OpenWrt
-    * Convert to use autoconf and automake.
-    * Update mochad wiki pages with command and event reference. Also add
-    instructions for building with OpenWrt.
+    * Fix RFCAM command so it shows the transmit message.
+    * Fix RF command which sent the wrong house in some cases. [ID: 3197002]
+
+mochad-0.1.4
+
+    * Fix RFCAM command so it takes house code as a parameter. For example,
+    RFCAM C CAMUP sends a camera pan up command on house code C.
+    Previously, RFCAM commands always used house code N. 
 
 mochad-0.1.3
 
@@ -17,9 +19,13 @@ mochad-0.1.3
     * Add --version command line parameter.
     * Add support for SP554 motion sensor
 
-mochad-0.1.4
+mochad-0.1.2
 
-    * Fix RFCAM command so it takes house code as a parameter. For example,
-    RFCAM C CAMUP sends a camera pan up command on house code C.
-    Previously, RFCAM commands always used house code N. 
+    * Fix device name in log messages. CM19A was reported as CM15A.
+    * Add install option that makes the controllers hot pluggable. udev in
+    Ubunutu and hotplug2 in OpenWrt
+    * Convert to use autoconf and automake.
+    * Update mochad wiki pages with command and event reference. Also add
+    instructions for building with OpenWrt.
+
 

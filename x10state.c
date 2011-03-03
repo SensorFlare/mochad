@@ -103,13 +103,13 @@ void hua_sec_event(unsigned char *secaddr, unsigned int funcint,
 static void hua_dbprint(void)
 {
     int h, u;
-    char buf[2048];
+    char buf[4096];
 
     strcpy(buf, "Selected:");
     for (h = 0; h < 16; h++) {
         for (u = 0; u < 16; u++) {
             if (HouseUnitSelected[h][u])
-                sprintf(buf+strlen(buf), "%c%d,", h+'A', u+1);
+                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%c%d,", h+'A', u+1);
         }
     }
     strcat(buf, "\n");
@@ -119,7 +119,7 @@ static void hua_dbprint(void)
     for (h = 0; h < 16; h++) {
         for (u = 0; u < 16; u++) {
             if (HouseUnitState[h][u])
-                sprintf(buf+strlen(buf), "%c%d %c,", h+'A', u+1, 
+                snprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), "%c%d %c,", h+'A', u+1, 
                         HouseUnitState[h][u]);
         }
     }
@@ -146,7 +146,7 @@ void hua_add(int house, int unit)
         default:
             dbprintf("Invalid state\n");
     }
-    hua_dbprint();
+    // hua_dbprint();
 }
 
 static void hua_func_all(int house, unsigned char func)
@@ -157,7 +157,7 @@ static void hua_func_all(int house, unsigned char func)
     for (u = 0; u < 16; u++) {
         HouseUnitState[house][u] = func;
     }
-    hua_dbprint();
+    // hua_dbprint();
 }
 
 void hua_func_all_on(int house)
@@ -180,7 +180,7 @@ static void hua_func(int house, unsigned char func)
         if (HouseUnitSelected[house][u])
             HouseUnitState[house][u] = func;
     }
-    hua_dbprint();
+    // hua_dbprint();
     dbprintf("%s exit\n", __func__);
 }
 
