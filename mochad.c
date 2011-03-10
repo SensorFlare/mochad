@@ -290,7 +290,7 @@ static int find_cm15a(struct libusb_device_handle **devhptr)
 
 static void IntrOut_cb(struct libusb_transfer *transfer)
 {
-    dbprintf("IntrOut callback len %d\n", transfer->actual_length);
+    /* dbprintf("IntrOut callback len %d\n", transfer->actual_length); */
 }
 
 static void IntrIn_cb(struct libusb_transfer *transfer)
@@ -307,8 +307,8 @@ static void IntrIn_cb(struct libusb_transfer *transfer)
         return;
     }
 
-    dbprintf("IntrIn callback len %d ", transfer->actual_length);
-    hexdump(transfer->buffer, transfer->actual_length);
+    /* dbprintf("IntrIn callback len %d ", transfer->actual_length); */
+    /* hexdump(transfer->buffer, transfer->actual_length); */
 
 /*        if ((transfer->actual_length == 1) && (*transfer->buffer == 0x55)) {  */
     if (transfer->actual_length == 1) {

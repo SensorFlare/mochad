@@ -73,8 +73,8 @@ void hua_sec_event(unsigned char *secaddr, unsigned int funcint,
     x10secsensor_t *sen;
 
     secaddr32 = (secaddr[0] << 16) | (secaddr[1] << 8) | secaddr[2] ;
-    dbprintf("secaddr32 %X func %X issecfunc %d\n", 
-            secaddr32, funcint, issecfunc(funcint));
+    /* dbprintf("secaddr32 %X func %X issecfunc %d\n", 
+            secaddr32, funcint, issecfunc(funcint)); */
 
     for (i = 0; i < X10sensorcount; i++) {
         sen = &X10sensors[i];
@@ -174,14 +174,14 @@ static void hua_func(int house, unsigned char func)
 {
     int u;
 
-    dbprintf("%s(%d,%d)\n", __func__, house, func);
+    /* dbprintf("%s(%d,%d)\n", __func__, house, func); */
     X10protostate[house] = 1;
     for (u = 0; u < 16; u++) {
         if (HouseUnitSelected[house][u])
             HouseUnitState[house][u] = func;
     }
     // hua_dbprint();
-    dbprintf("%s exit\n", __func__);
+    /* dbprintf("%s exit\n", __func__); */
 }
 
 void hua_func_on(int house)

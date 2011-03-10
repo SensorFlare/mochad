@@ -22,6 +22,8 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <sys/timeb.h>
 #include "global.h"
 #include "decode.h"
 #include "x10state.h"
@@ -411,7 +413,7 @@ struct CamRemoteRec {
     const char *name;
 };
 
-static const unsigned char *RFCAMKeyCodes[] = {
+static const char *RFCAMKeyCodes[] = {
     /* 0x54 */ "CAMPRESET5",
     /* 0x55 */ "CAMEDITPRESET5",
     /* 0x56 */ "CAMPRESET6",
@@ -568,6 +570,97 @@ static int repeatRF(int fd, unsigned char *buf, size_t len)
     return retval;
 }
 
+typedef uint64_t timems_t;
+
+/* Get system time in milliseconds */
+static timems_t get_timems(void)
+{
+    struct timeb tp;
+
+    ftime(&tp);
+    return (timems_t) (tp.time * 1000) + tp.millitm;
+}
+
+#define DUP_TIME (650)
+
+/* if (buf,len) not in dups, add (buf,len) with curtime+100, return 0
+ * if (buf,len) in dups && timer not expired, discard (buf,len), return 1
+ * if (buf,len) in dups && timer expired, add (buf,len) with curtime+100ms,
+ *  return 0
+ * if len==-1, return 1 if Rx is still going on, else return 0
+ */
+static int dup_filter(const unsigned char *buf, int len)
+{
+    struct dup_entry {
+        timems_t        timems;             /* Expire time in milliseconds */
+        unsigned char   rf_command[16];     /* RF command */
+        int             rf_cmd_len;         /* 0=unused */
+    };
+    static struct dup_entry dups[16];
+    int i, firstunused=-1, add_index, inuse=0;
+    struct dup_entry *p;
+    timems_t timems;
+
+#define DUP_MAX         (sizeof(dups)/sizeof(dups[0]))
+
+    timems = get_timems();
+    for (i = 0; i < DUP_MAX; i++) {
+        p = &dups[i];
+        if (p->rf_cmd_len) {
+            if ((p->rf_cmd_len == len) && (memcmp(p->rf_command, buf, len) == 0)) {
+                /* Found it */
+                /* printf("delta %d\n", (unsigned int)p->timems - (unsigned int)timems); */
+                if (timems > p->timems) {
+                    /* Entry has expired so reuse it with fresh timeout */
+                    p->timems = get_timems() + DUP_TIME;
+                    /* printf("dup_filter reuse @ %d\n", i); */
+                    return 0;
+                }
+                else {
+                    /* Entry has not expired so ignore it */
+                    /* printf("dup_filter ignore @ %d\n", i); */
+                    return 1;
+                }
+            }
+            else {
+                if (timems > p->timems) {
+                    /* Entry has expired so mark it unused */
+                    p->rf_cmd_len = 0;
+                    if (firstunused == -1) firstunused = i;
+                }
+                else
+                    inuse++;
+            }
+        }
+        else {
+            if (firstunused == -1) firstunused = i;
+        }
+    }
+
+    if (len == -1) return (inuse != 0);
+
+    /* Did not find in dups so add it */
+    add_index = firstunused;
+    if (firstunused == -1) {
+        /* Use the entry closest to expiring */
+        int min=dups[0].timems;
+        add_index = 0;
+        for (i = 1; i < DUP_MAX; i++) {
+            if (dups[i].timems < min) {
+                min = dups[i].timems;
+                add_index = i;
+            }
+        }
+    }
+    /* printf("dup_filter add @ %d\n", add_index); */
+    p = &dups[add_index];
+    p->timems = get_timems() + DUP_TIME;
+    memcpy(p->rf_command, buf, len);
+    p->rf_cmd_len = len;
+    return 0;
+}
+
+
 /* RF A1 ON
  * 5D 20 60 9F 00 FF 
  *  5D RF
@@ -606,6 +699,14 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
     char cmdbuf[80];
     const char *commandp;
 
+    dbprintf("%s(%d,%u) ", __func__, fd, len);
+    hexdump(buf, len);
+    /* Skip over extra 0x5Ds */
+    while ((buf[1] == 0x5D) && len) {
+        dbprintf("Skipping extra 0x5D\n");
+        buf++;
+        len--;
+    }
     if (len < 5) {
         sockprintf(fd, "too short %d\n", len);
         sockhexdump(fd, buf, len);
@@ -621,6 +722,7 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
         case 0x14:  // X10 RF camera
             commandp = findCamRemoteName(&buf[1], len-1);
             if (commandp) {
+                if (dup_filter(buf, len)) return;
                 sockprintf(fd, "%cx RFCAM %s\n", (buf[0] == 0x5d) ? 'R' : 'T',
                        commandp);
                 repeatRF(fd, buf, len);
@@ -631,6 +733,11 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
             }
             break;
         case 0x20:  // standard X10 RF
+            if ((buf[4] ^ buf[5]) != 0xff) {
+                sockprintf(fd, "Invalid checksum\n");
+                sockhexdump(fd, buf, len);
+                return;
+            }
             chksum = buf[2] ^ buf[3];
             if (chksum == 0x0f) {
                 /* 5D 20 E2 ED 0A F5 from SH624
@@ -639,11 +746,7 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
                  *        |  XOR with prev byte==0x0f
                  *        8 bit security code change by pressing CODE button
                  */
-                if ((buf[4] ^ buf[5]) != 0xff) {
-                    sockprintf(fd, "Invalid checksum\n");
-                    sockhexdump(fd, buf, len);
-                    return;
-                }
+                if (dup_filter(buf, len)) return;
                 secaddr[0] = 0;
                 secaddr[1] = 0;
                 secaddr[2] = buf[2];
@@ -660,8 +763,9 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
                  *        |  XOR with prev byte=0xff
                  *        house code/unit
                  */
+                if (dup_filter(buf, len)) return;
                 unitint = hufc_decode(buf[2], buf[4], &housechar, &funcint);
-                dbprintf("h %c func %d\n", housechar, funcint);
+                /* dbprintf("h %c func %d\n", housechar, funcint); */
                 if (funcint > 1) {  // Dim or Bright
                     sockprintf(fd, "%cx RF House: %c Func: %s\n", 
                             (buf[0] == 0x5d) ? 'R' : 'T',
@@ -705,18 +809,11 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
                 sockhexdump(fd, buf, len);
             }
             break;
-        case 0x24:  // ????
-        case 0x28:  // ????
-            // 5D 24 EE 11 8E 79 40
-            // 5d 28 33 2d 18 e6 a5
-            // 5d 28 33 2c 19 e6 a5
-            sockprintf(fd, "Not supported %02X\n", buf[1]);
-            sockhexdump(fd, buf, len);
-            break;
         case 0x29:  // security X10 RF
             rc = secaf_decode(buf, len, secaddr, &funcint);
             switch (rc) {
                 case 0:
+                    if (dup_filter(buf, len)) return;
                     hua_sec_event(secaddr, funcint, 0);
                     sockprintf(fd, "%cx RFSEC Addr: %02X:%02X:%02X Func: %s\n", 
                             (buf[0] == 0x5d) ? 'R' : 'T',
@@ -736,6 +833,19 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
                     break;
             }
             break;
+#if 0
+        case 0x5A:  // CM15A internal RF to PL repeater is on so disable it
+            dbprintf("Disabling internal RF to PL repeater\n");
+            x10_write((unsigned char *)"\xdb\x1f\xf0", 3);
+            x10_write((unsigned char *)"\xfb\x20\x00\x02", 4);
+            x10_write((unsigned char *)"\xbb\x00\x00\x05\x00\x14\x20\x28", 8);
+            break;
+#endif
+        case 0x24:  // ????
+        case 0x28:  // ????
+            // 5D 24 EE 11 8E 79 40
+            // 5d 28 33 2d 18 e6 a5
+            // 5d 28 33 2c 19 e6 a5
         default:
             sockprintf(fd, "Not supported %02X\n", buf[1]);
             sockhexdump(fd, buf, len);
@@ -751,7 +861,7 @@ void cm15a_decode(int fd, unsigned char *buf, unsigned int len)
     if (len < 4) return;
     if (Cm19a) {
         /* Add 0x5d to front so USB packet from the CM19A looks just like
-         * a USB packet frmo the CM15A. Call the same decode function.
+         * a USB packet from the CM15A. Call the same decode function.
          * The CM19A does RF but not PL.
          */
         p = bufcm19a;
@@ -774,6 +884,13 @@ void cm15a_decode(int fd, unsigned char *buf, unsigned int len)
         case 0x5b:  // ????
             break;
         case 0x5d:  // RF event
+#if 0
+            if (p[1] == 0x5A) {
+                sockprintf(fd, "Extra 0x5D?\n");
+                cm15a_decode_plc(fd, p+1, len-1);
+            }
+            else
+#endif
             cm15a_decode_rf(fd, p, len);
             break;
         default:

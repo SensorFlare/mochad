@@ -493,7 +493,7 @@ static int pl_tx_housefunc(int fd, int house, int func, int param)
  *
  * EB 29 7F 70 8C 73 CA 00 from MS10,DS10,KR10 17(?) bit RF address 
  *        |  |  |  |  |  |
- *        |  |  |  |  |  addr3
+ *        |  |  |  |  |  addr3 (even parity bit for previous byte)
  *        |  |  |  |  addr2
  *        |  |  |  XOR with prev byte=0xff
  *        |  |  function/key
@@ -701,6 +701,14 @@ int processcommandline(int fd, char *aLine)
             memcpy(x10bytes8+1, &bitmap16, sizeof(bitmap16));
             x10_write(x10bytes8, 8);
         }
+        else if (strcmp(command, "CMINIT") == 0) {
+            dbprintf("Disabling internal RF to PL repeater\n");
+            x10_write((unsigned char *)"\x9b\x00\x09\x07\x43\x04\xe0\x03", 8);
+            x10_write((unsigned char *)"\x8b", 1);
+            x10_write((unsigned char *)"\xdb\x1f\xf0", 3);
+            x10_write((unsigned char *)"\xfb\x20\x00\x02", 4);
+            x10_write((unsigned char *)"\xbb\x00\x00\x05\x00\x14\x20\x28", 8);
+        }
 #endif
         else if (strcmp(command, "RFTOPL") == 0) {
             RfToPl16 = gethousecodes();
@@ -708,7 +716,7 @@ int processcommandline(int fd, char *aLine)
         }
         else if (strcmp(command, "RFTORF") == 0) {
             arg1 = strtok(NULL, " ");
-            RfToRf16 = (unsigned short)strtoul(arg1, NULL, 10);
+            if (arg1) RfToRf16 = (unsigned short)strtoul(arg1, NULL, 10);
             sockprintf(fd, "RfToRf %04X\n", RfToRf16);
         }
         else if (strcmp(command, "ST") == 0) {

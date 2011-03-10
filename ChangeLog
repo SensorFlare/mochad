@@ -1,3 +1,9 @@
+mochad-0.1.6
+
+    * Add RF event filter to eliminate the flurry of duplicate events.
+    This makes it much easier to write applications.
+    * Skip extra leading 0x5D on received RF packets from CM15A.
+
 mochad-0.1.5
 
     * Fix RFCAM command so it shows the transmit message.
@@ -27,5 +33,3 @@ mochad-0.1.2
     * Convert to use autoconf and automake.
     * Update mochad wiki pages with command and event reference. Also add
     instructions for building with OpenWrt.
-
-
