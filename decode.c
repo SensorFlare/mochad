@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Brian Uechi <buasst@gmail.com>
+ * Copyright 2010-2011 Brian Uechi <buasst@gmail.com>
  *
  * This file is part of mochad.
  *
@@ -733,11 +733,6 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
             }
             break;
         case 0x20:  // standard X10 RF
-            if ((buf[4] ^ buf[5]) != 0xff) {
-                sockprintf(fd, "Invalid checksum\n");
-                sockhexdump(fd, buf, len);
-                return;
-            }
             chksum = buf[2] ^ buf[3];
             if (chksum == 0x0f) {
                 /* 5D 20 E2 ED 0A F5 from SH624
@@ -746,6 +741,11 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
                  *        |  XOR with prev byte==0x0f
                  *        8 bit security code change by pressing CODE button
                  */
+                if ((buf[4] ^ buf[5]) != 0xff) {
+                    sockprintf(fd, "Invalid checksum\n");
+                    sockhexdump(fd, buf, len);
+                    return;
+                }
                 if (dup_filter(buf, len)) return;
                 secaddr[0] = 0;
                 secaddr[1] = 0;
@@ -763,6 +763,13 @@ void cm15a_decode_rf(int fd, unsigned char *buf, unsigned int len)
                  *        |  XOR with prev byte=0xff
                  *        house code/unit
                  */
+                chksum = (buf[4] ^ buf[5]);
+                /* CM15A for Unit codes 9-16 ON/OFF produces 0xFB checksum */
+                if ( (chksum != 0xff) && (chksum != 0xfb) ) {
+                    sockprintf(fd, "Invalid checksum\n");
+                    sockhexdump(fd, buf, len);
+                    return;
+                }
                 if (dup_filter(buf, len)) return;
                 unitint = hufc_decode(buf[2], buf[4], &housechar, &funcint);
                 /* dbprintf("h %c func %d\n", housechar, funcint); */

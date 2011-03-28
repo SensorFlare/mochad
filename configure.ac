@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.64])
-AC_INIT([mochad], [0.1.6], [mmauka@users.sourceforge.net])
+AC_INIT([mochad], [0.1.7], [mmauka@users.sourceforge.net])
 #AC_CONFIG_SRCDIR([mochad.c])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 

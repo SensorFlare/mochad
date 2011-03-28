@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Brian Uechi <buasst@gmail.com>
+ * Copyright 2010-2011 Brian Uechi <buasst@gmail.com>
  *
  * This file is part of mochad.
  *

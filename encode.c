@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Brian Uechi <buasst@gmail.com>
+ * Copyright 2010-2011 Brian Uechi <buasst@gmail.com>
  *
  * This file is part of mochad.
  *
@@ -756,14 +756,17 @@ void cm15a_encode(int fd, unsigned char * buf, size_t buflen)
      */
     remptr = remainder + remlen;
     while (buflen--) {
-        *remptr = *buf++;
-        if (*remptr == '\n') {
-            *remptr = '\0';
-            processcommandline(fd, remainder);
-            remptr = remainder;
+        if (*buf) {
+            *remptr = *buf;
+            if (*remptr == '\n') {
+                *remptr = '\0';
+                processcommandline(fd, remainder);
+                remptr = remainder;
+            }
+            else
+                remptr++;
         }
-        else
-            remptr++;
+        buf++;
     }
     remlen = remptr - remainder;
 }

@@ -1,3 +1,8 @@
+mochad-0.1.7
+
+    * Add Flash XMLSocket support on port 1100 for Chumby widgets.
+    * Fix RF checksum problem when receiving from CM15A for house codes 9-16.
+
 mochad-0.1.6
 
     * Add RF event filter to eliminate the flurry of duplicate events.

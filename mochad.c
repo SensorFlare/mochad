@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Brian Uechi <buasst@gmail.com>
+ * Copyright 2010-2011 Brian Uechi <buasst@gmail.com>
  *
  * This file is part of mochad.
  *
@@ -57,10 +57,12 @@
 #define MAXSOCKETS      (1+MAXCLISOCKETS)
                             /* first socket=listen socket, 20 client sockets */
 #define USB_FDS         (10)    /* libusb file descriptors */
-static struct pollfd Clients[MAXSOCKETS+USB_FDS];
+static struct pollfd Clients[(2*MAXSOCKETS)+USB_FDS];
 /* Client sockets */
 static struct pollfd Clientsocks[MAXCLISOCKETS];
+static struct pollfd Clientxmlsocks[MAXCLISOCKETS];
 static size_t NClients;     /* # of valid entries in Clientsocks */
+static size_t NxmlClients;     /* # of valid entries in Clientsocks */
 
 
 /**** USB usblib 1.0 ****/
@@ -82,24 +84,47 @@ int sockprintf(int fd, const char *fmt, ...)
 {
     va_list args;
     char buf[1024];
+    char *aLine;
     int len, buflen;
     time_t tm;
     int i;
     int bytesOut;
+    static const char HEADER[] = "<mochad event=\"";
 
+    strcpy(buf, HEADER);
+    aLine = buf + strlen(HEADER);
     tm = time(NULL);
-    len = strftime(buf, sizeof(buf), "%m/%d %T ", localtime(&tm));
+    len = strftime(aLine, sizeof(buf)-strlen(HEADER), "%m/%d %T ", 
+            localtime(&tm));
     va_start(args,fmt);
-    buflen = vsnprintf(buf+len, sizeof(buf)-len, fmt, args);
+    buflen = vsnprintf(aLine+len, (sizeof(buf)-len)-strlen(HEADER), fmt, args);
     va_end(args);
     buflen += len;
-    if (fd != -1) return send(fd, buf, buflen, MSG_NOSIGNAL);
+    if (fd != -1) return send(fd, aLine, buflen, MSG_NOSIGNAL);
 
     /* Send to all socket clients */
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if ((fd = Clientsocks[i].fd) > 0) {
             dbprintf("%s i %d fd %d\n", __func__, i, fd);
-            bytesOut = send(fd, buf, buflen, MSG_NOSIGNAL);
+            bytesOut = send(fd, aLine, buflen, MSG_NOSIGNAL);
+            dbprintf("bytesOut %d\n", bytesOut);
+            if (bytesOut != buflen)
+                dbprintf("%s: %d/%d\n", __func__, bytesOut, errno);
+        }
+    }
+    /* Remove trialing newline if present. This assumes one line per call. */
+    if (aLine[buflen-1] == '\n') {
+        aLine[buflen-1] = '\0';
+    }
+    /* Add xml matching terminator */
+//    strcat(buf, "\"</mochad>");
+//    buflen = strlen(buf)+1;     /* Include trailing NUL */
+    /* Send to all xml socket clients */
+    for (i = 0; i < MAXCLISOCKETS; i++) {
+        if ((fd = Clientxmlsocks[i].fd) > 0) {
+            dbprintf("%s i %d fd %d\n", __func__, i, fd);
+            /* NOTE: Send xml including trailing NUL '\0' */
+            bytesOut = send(fd, aLine, buflen, MSG_NOSIGNAL);
             dbprintf("bytesOut %d\n", bytesOut);
             if (bytesOut != buflen)
                 dbprintf("%s: %d/%d\n", __func__, bytesOut, errno);
@@ -146,8 +171,10 @@ static void init_client(void)
 {
     int i;
 
-    for (i = 0; i < MAXCLISOCKETS; i++) Clientsocks[i].fd = -1;
-    NClients = 0;
+    for (i = 0; i < MAXCLISOCKETS; i++) {
+        Clientsocks[i].fd = Clientxmlsocks[i].fd = -1;
+    }
+    NClients = NxmlClients = 0;
 }
 
 /* Add new socket client */
@@ -168,6 +195,24 @@ static int add_client(int fd)
     return -1;
 }
 
+/* Add new flashxml socket client */
+static int add_xmlclient(int fd)
+{
+    int i;
+
+    for (i = 0; i < MAXCLISOCKETS; i++) {
+        if (Clientxmlsocks[i].fd == -1) {
+            Clientxmlsocks[i].fd = fd;
+            Clientxmlsocks[i].events = POLLIN;
+            Clientxmlsocks[i].revents = 0;
+            NxmlClients++;
+            return 0;
+        }
+    }
+    dbprintf("max XML clients exceeded %d\n", i);
+    return -1;
+}
+
 /* Delete socket client */
 static int del_client(int fd)
 {
@@ -177,6 +222,11 @@ static int del_client(int fd)
         if (Clientsocks[i].fd == fd) {
             Clientsocks[i].fd = -1;
             NClients--;
+            return 0;
+        }
+        if (Clientxmlsocks[i].fd == fd) {
+            Clientxmlsocks[i].fd = -1;
+            NxmlClients--;
             return 0;
         }
     }
@@ -193,8 +243,11 @@ static int copy_clients(struct pollfd *Clients)
         if (Clientsocks[i].fd != -1) {
             *Clients++ = Clientsocks[i];
         }
+        if (Clientxmlsocks[i].fd != -1) {
+            *Clients++ = Clientxmlsocks[i];
+        }
     }
-    return NClients;
+    return NClients+NxmlClients;
 }
 /* Client sockets */
 
@@ -391,7 +444,7 @@ static int mydaemon(void)
 
     /**** sockets ****/
     socklen_t clilen; 
-    int clifd, listenfd;
+    int clifd, listenfd, flashxmlfd;
     unsigned char buf[1024];
     int bytesIn;
     struct sockaddr_in cliaddr, servaddr;
@@ -485,24 +538,41 @@ static int mydaemon(void)
     dbprintf("bind() %d/%d\n", rc, errno);
     rc = listen(listenfd, 5);
     dbprintf("listen() %d/%d\n", rc, errno);
-    init_client();
 
+    /* Listen socket for Flash XML clients */
+    flashxmlfd = socket(AF_INET, SOCK_STREAM, 0);
+    dbprintf("flashxmlfd %d\n", flashxmlfd);
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SERVER_PORT+1);
+
+    rc = setsockopt(flashxmlfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    dbprintf("setsockopt() %d/%d\n", rc, errno);
+    rc = bind(flashxmlfd, (struct sockaddr*) &servaddr, sizeof(servaddr));
+    dbprintf("bind() %d/%d\n", rc, errno);
+    rc = listen(flashxmlfd, 5);
+    dbprintf("listen() %d/%d\n", rc, errno);
+
+    init_client();
     Clients[0].fd = listenfd;
     Clients[0].events = POLLIN;
+    Clients[1].fd = flashxmlfd;
+    Clients[1].events = POLLIN;
     PollTimeOut = -1;
 
-    while (!Do_exit)
-    {
+    while (!Do_exit) {
         int nsockclients;
         int npollfds;
 
         /* Start appending records for socket clients to Clients array after 
-         * listen and USB records
+         * listen, flashxml listen, and USB records
          */
-        nsockclients = copy_clients(&Clients[1+nusbfds]);
-        /* 1 for listen socket, nusbfds for libusb, nsockclients for socket clients
+        nsockclients = copy_clients(&Clients[2+nusbfds]);
+        /* 1 for listen socket, 1 for flashxml listen socket, nusbfds for 
+         * libusb, nsockclients for socket clients
          */
-        npollfds = 1 + nusbfds + nsockclients;
+        npollfds = 2 + nusbfds + nsockclients;
         nready = poll(Clients, npollfds, PollTimeOut);
 #if 0
         dbprintf("poll() %d\n", nready);
@@ -530,8 +600,18 @@ static int mydaemon(void)
 
                 if (--nready <= 0) continue;
             }
+            if (Clients[1].revents & POLLIN) {
+                /* new flashxml client connection */
+                clilen = sizeof(cliaddr);
+                clifd  = accept(flashxmlfd, (struct sockaddr *)&cliaddr, &clilen);
+                dbprintf("flashxml accept() %d/%d\n", clifd, errno);
 
-            for (i = 1+nusbfds; i < npollfds; i++) {
+                r = add_xmlclient(clifd);
+
+                if (--nready <= 0) continue;
+            }
+
+            for (i = 2+nusbfds; i < npollfds; i++) {
                 if ((clifd = Clients[i].fd) >= 0) {
                     /* dbprintf("client %d revents 0x%X\n", i, Clients[i].revents); */
                     if (Clients[i].revents & (POLLIN|POLLERR)) {
