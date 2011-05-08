@@ -27,8 +27,8 @@
 #include "x10state.h"
 #include "decode.h"
 
-/* 16 house code and 16 units code = 256 devices
- * For normal X10 devices.
+/* 16 house codes and 16 unit codes = 256 devices
+ * For normal (non-security) X10 devices.
  */
 typedef unsigned char houseunitaddrs_t[16][16];
 
@@ -53,6 +53,12 @@ static houseunitaddrs_t HouseUnitSelected;
  * 0 = house/unit code, 1 = house/function */
 static int X10protostate[16];
 
+/* HouseUnitSelect and X10protostate are needed because of the following case.
+ * pl b3    # Select b3
+ * pl b4    # Select b4
+ * pl b on  # Turn on b3 and b4
+ */
+
 void hua_sec_init(void) 
 {
     memset(HouseUnitState, 0, sizeof(HouseUnitState));
@@ -65,6 +71,7 @@ void hua_sec_init(void)
 
 #define issecfunc(x) (((x & 0xF0) == 0x80) || ((x & 0xF0) == 0x00))
 
+/* Remember RF security event */
 void hua_sec_event(unsigned char *secaddr, unsigned int funcint, 
         unsigned int secaddr8)
 {
@@ -132,6 +139,16 @@ static void hua_init(int house)
     memset(&HouseUnitSelected[house], 0, sizeof(HouseUnitSelected)/16);
 }
 
+unsigned char hua_getstatus(int house, int unit)
+{
+    return HouseUnitState[house][unit];
+}
+
+int hua_getstatus_xdim(int house, int unit)
+{
+    return 32;  // TODO add xdim status tracking
+}
+
 void hua_add(int house, int unit)
 {
     switch (X10protostate[house]) {
@@ -192,6 +209,45 @@ void hua_func_on(int house)
 void hua_func_off(int house)
 {
     hua_func(house, '0');
+}
+
+int hua_getstatus_sec(int rf8bitaddr, unsigned long rfaddr)
+{
+    x10secsensor_t *sen;
+    int sensor;
+
+    dbprintf("hua_getstatus_sec(%d,%X)\n", rf8bitaddr, rfaddr);
+    for (sensor = 0; sensor < X10sensorcount; sensor++) {
+        sen = &X10sensors[sensor];
+
+        dbprintf("hua_getstatus_sec addr8 %d addr %X status %X\n",
+                sen->secaddr8, sen->secaddr, sen->sensorstatus);
+        if (rf8bitaddr && sen->secaddr8 && (rfaddr == sen->secaddr)) {
+            switch (sen->sensorstatus) {
+                case 0x04: return 1;    /* alert */
+                case 0x84: return 0;    /* normal */
+            }
+        }
+        else if (!rf8bitaddr && !sen->secaddr8 && (rfaddr == sen->secaddr)) {
+            switch (sen->sensorstatus) {
+                case 0x00:
+                case 0x01:
+                case 0x04:
+                case 0x05:
+                case 0x0C:
+                case 0x0D:
+                    return 1;    /* alert */
+                case 0x80:
+                case 0x81:
+                case 0x84:
+                case 0x85:
+                case 0x8C:
+                case 0x8D:
+                    return 0;    /* normal */
+            }
+        }
+    }
+    return -1;
 }
 
 static int cmpX10sensor(const void *e1, const void *e2)
@@ -266,7 +322,7 @@ void hua_show(int fd)
             message = findSecRemoteKeyName(sen->sensorstatus);
         else
             message = findSecEventName(sen->sensorstatus);
-        sockprintf(fd, "Sensor addr: %X Last: %02d:%02d %s \n", sen->secaddr,
+        sockprintf(fd, "Sensor addr: %06X Last: %02d:%02d %s \n", sen->secaddr,
                 mins, deltat, message);
     }
 

@@ -33,3 +33,7 @@ void hua_func_on(int house);
 void hua_func_off(int house);
 
 void hua_show(int fd);
+
+unsigned char hua_getstatus(int house, int unit);
+int hua_getstatus_sec(int rf8bitaddr, unsigned long rfaddr);
+

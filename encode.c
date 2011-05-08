@@ -81,6 +81,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/socket.h>
 #include "global.h"
 #include "encode.h"
 #include "decode.h"
@@ -300,9 +301,10 @@ static int getdeviceaddr(int *unit)
     *unit=-1;
 
     parm = strtok(NULL, " ");
-    if (!parm) return house;
+    if (!parm || (strlen(parm) > 3)) return house;
 
     dbprintf("deviceaddr %s\n", parm);
+
     c = *parm++;
     if (!ishouse(c)) return house;
     house = c - 'A';
@@ -589,9 +591,17 @@ static int rf_tx_houseunitfunc(int fd, int house, int unit, int func)
         return x10_write(buf, sizeof(buf));
 }
 
-/*
+static const char DOMAINPOLICY[] = 
+    "<?xml version=\"1.0\"?>"
+    "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.adobe.com/xml/dtds/cross-domain-policy.dtd\">"
+    "<cross-domain-policy>"
+    "<allow-access-from domain=\"*.chumby.com\" to-ports=\"1100\" />"
+    "</cross-domain-policy>";
+
+/* aLine looks something like the following
  * pl a1 on
  * rf a1 on
+ * getstatus a1
  */
 int processcommandline(int fd, char *aLine)
 {
@@ -604,6 +614,11 @@ int processcommandline(int fd, char *aLine)
 
     strupper(aLine);
     dbprintf("%lu:%s\n", (unsigned long)strlen(aLine), aLine);
+    if (strcmp(aLine, "<POLICY-FILE-REQUEST/>") == 0) {
+        /* Yes, this sends the '\0' terminator which is required. */
+        send(fd, DOMAINPOLICY, sizeof(DOMAINPOLICY), MSG_NOSIGNAL);
+        return 0;
+    }
     command = strtok(aLine, " ");
     if (command) {
         if (strcmp(command, "PL") == 0) {
@@ -727,6 +742,33 @@ int processcommandline(int fd, char *aLine)
             else
                 hua_show(fd);
         }
+        else if (strcmp(command, "GETSTATUS") == 0) {
+            house = getdeviceaddr(&unit);
+            if ((house >= 0) && (unit >= 0)) {
+                arg1 = strtok(NULL, " ");
+                if (arg1) {
+                    if (strcmp(arg1, "XDIM") == 0) {    /* getstatus a1 xdim */
+                        statusprintf(fd, "-1\n");
+                    }
+                    else {  /* getstatus a1 ? */
+                        statusprintf(fd, "-1\n");
+                    }
+                }
+                else {  /* getstatus a1 */
+                    statusprintf(fd, "%s\n", 
+                            (hua_getstatus(house, unit) == '1') ? "on": "off");
+                }
+            }
+            else
+                return -1;
+        }
+        else if (strcmp(command, "GETSTATUSSEC") == 0) {
+            rfaddr = 0;
+            rf8bitaddr = getrfaddr(&rfaddr);
+            if (rf8bitaddr < 0) return -1;
+            statusprintf(fd, "%s\n",
+                    (hua_getstatus_sec(rf8bitaddr, rfaddr) == 1) ? "on": "off");
+        }
         else {
             dbprintf("Unknown command: %s\n", command);
             return -1;
@@ -750,22 +792,22 @@ void cm15a_encode(int fd, unsigned char * buf, size_t buflen)
     dbprintf("remlen %lu\n", (unsigned long)remlen);
     hexdump(remainder, remlen);
 
-    /* Break the input stream into \n terminated lines. The stream is not
+    /* Break the input stream into \n or \r terminated lines. The stream is not
      * guaranteed to end on a line boundary so there may be left over input
      * which must be processed the next time around.
      */
     remptr = remainder + remlen;
     while (buflen--) {
-        if (*buf) {
-            *remptr = *buf;
-            if (*remptr == '\n') {
-                *remptr = '\0';
+        *remptr = *buf;
+        if ((*remptr == '\n') || (*remptr == '\r') || (*remptr == '\0')) {
+            *remptr = '\0';
+            if (strlen(remainder)) {
                 processcommandline(fd, remainder);
-                remptr = remainder;
             }
-            else
-                remptr++;
+            remptr = remainder;
         }
+        else
+            remptr++;
         buf++;
     }
     remlen = remptr - remainder;

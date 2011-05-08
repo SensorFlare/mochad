@@ -1,3 +1,15 @@
+mochad-0.1.8
+
+    * Add support for X10 KR15A Big Red Button.
+    * Allow '\r' as well as '\n' for line termination
+    * Add more support for Flash XMLSocket clients including cross domain
+    policy request and response for Chumby widgets. This is required to allow
+    a Chumby widget to talk to mochad through an XMLSocket. Chumby widget
+    should be released real soon now.
+    * Add python-tk demo GUI application. Supports on and off buttons plus
+    brighness slider using LM465 soft-start lamp modules. The slider will not
+    work with older LM465 modules which lack soft-start. See apps/x10-tk.py.
+
 mochad-0.1.7
 
     * Add Flash XMLSocket support on port 1100 for Chumby widgets.

@@ -36,6 +36,7 @@ int _dbprintf(const char *fmt, ...);
 
 int write_usb(unsigned char *buf, size_t len);
 
+int statusprintf(int fd, const char *fmt, ...);
 int sockprintf(int fd, const char *fmt, ...);
 
 void hexdump(void *p, size_t len);

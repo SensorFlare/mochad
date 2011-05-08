@@ -390,6 +390,7 @@ static const struct SecEventRec SecEventNames[] = {
     {0x46, "Lights_On_KR10A"},
     {0xC6, "Lights_Off_KR10A"},
     {0x26, "Panic_KR10A"},
+    {0x03, "Panic_KR15A"},                  /* Big red button */
     {0x00, NULL},
 };
 

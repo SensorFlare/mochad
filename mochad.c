@@ -78,7 +78,33 @@ static unsigned char IntrOutBuf[8];
 static unsigned char IntrInBuf[8];
 
 /*
+ * Like printf but print to socket without date/time stamp.
+ * Used to send back result of getstatus command.
+ */
+int statusprintf(int fd, const char *fmt, ...)
+{
+    va_list args;
+    char buf[1024];
+    int buflen;
+
+    va_start(args,fmt);
+    buflen = vsnprintf(buf, sizeof(buf)-2, fmt, args);
+    va_end(args);
+    return send(fd, buf, buflen, MSG_NOSIGNAL);
+}
+
+static int xmlclient(int fd)
+{
+    int i;
+    for (i = 0; i < MAXCLISOCKETS; i++) {
+        if (fd == Clientxmlsocks[i].fd) return 1;
+    }
+    return 0;
+}
+
+/*
  * Like printf but prefix each line with date/time stamp.
+ * If fd == -1, send to all socket clients else send only to fd.
  */
 int sockprintf(int fd, const char *fmt, ...)
 {
@@ -89,18 +115,20 @@ int sockprintf(int fd, const char *fmt, ...)
     time_t tm;
     int i;
     int bytesOut;
-    static const char HEADER[] = "<mochad event=\"";
 
-    strcpy(buf, HEADER);
-    aLine = buf + strlen(HEADER);
+    aLine = buf;
     tm = time(NULL);
-    len = strftime(aLine, sizeof(buf)-strlen(HEADER), "%m/%d %T ", 
-            localtime(&tm));
+    len = strftime(aLine, sizeof(buf), "%m/%d %T ", localtime(&tm));
     va_start(args,fmt);
-    buflen = vsnprintf(aLine+len, (sizeof(buf)-len)-strlen(HEADER), fmt, args);
+    buflen = vsnprintf(aLine+len, sizeof(buf)-len, fmt, args);
     va_end(args);
     buflen += len;
-    if (fd != -1) return send(fd, aLine, buflen, MSG_NOSIGNAL);
+    if (fd != -1) {
+        if (xmlclient(fd) && (aLine[buflen-1] == '\n')) {
+            aLine[buflen-1] = '\0';
+        }
+        return send(fd, aLine, buflen, MSG_NOSIGNAL);
+    }
 
     /* Send to all socket clients */
     for (i = 0; i < MAXCLISOCKETS; i++) {
@@ -112,13 +140,12 @@ int sockprintf(int fd, const char *fmt, ...)
                 dbprintf("%s: %d/%d\n", __func__, bytesOut, errno);
         }
     }
-    /* Remove trialing newline if present. This assumes one line per call. */
+    /* Replace trialing newline with NUL if present. 
+     * This assumes newline only at end of buffer.
+     */
     if (aLine[buflen-1] == '\n') {
         aLine[buflen-1] = '\0';
     }
-    /* Add xml matching terminator */
-//    strcat(buf, "\"</mochad>");
-//    buflen = strlen(buf)+1;     /* Include trailing NUL */
     /* Send to all xml socket clients */
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if ((fd = Clientxmlsocks[i].fd) > 0) {
@@ -138,6 +165,7 @@ static void _hexdump(void *p, size_t len, char *outbuf, size_t outlen)
     unsigned char *ptr = (unsigned char*) p;
     size_t l;
 
+    if (len == 0) return;
     if (len > (outlen / 3))
         l = outlen / 3;
     else
@@ -463,7 +491,7 @@ static int mydaemon(void)
     r = libusb_init(NULL);
     if (r < 0) {
         syslog(LOG_EMERG, "failed to initialise libusb %d", r);
-        dbprintf("failed to initialise libusb %d\r", r);
+        dbprintf("failed to initialise libusb %d\n", r);
         exit(1);
     }
     libusb_set_debug(NULL, 3);
@@ -502,8 +530,6 @@ static int mydaemon(void)
     sigaction(SIGTERM, &sigact, NULL);
     sigaction(SIGQUIT, &sigact, NULL);
 
-    if (r < 0)
-        goto out_deinit;
     usbfds = libusb_get_pollfds(NULL);
     dbprintf("usbfds %p %p %p %p %p\n", usbfds, 
             usbfds[0], usbfds[1], usbfds[2], usbfds[3]);
@@ -676,7 +702,7 @@ out:
 
 static void printcopy(void)
 {
-    printf("Copyright (C) 2010 Brian Uechi.\n");
+    printf("Copyright (C) 2010-2011 Brian Uechi.\n");
     printf("\n");
     printf("This program comes with NO WARRANTY.\n");
     printf("You may redistribute copies of this program\n");
