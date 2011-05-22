@@ -53,17 +53,18 @@
 #include "global.h"
 
 #define SERVER_PORT (1099)
-#define MAXCLISOCKETS   (16)
+#define MAXCLISOCKETS   (32)
 #define MAXSOCKETS      (1+MAXCLISOCKETS)
                             /* first socket=listen socket, 20 client sockets */
 #define USB_FDS         (10)    /* libusb file descriptors */
-static struct pollfd Clients[(2*MAXSOCKETS)+USB_FDS];
+static struct pollfd Clients[(3*MAXSOCKETS)+USB_FDS];
 /* Client sockets */
 static struct pollfd Clientsocks[MAXCLISOCKETS];
 static struct pollfd Clientxmlsocks[MAXCLISOCKETS];
+static struct pollfd Clientor20socks[MAXCLISOCKETS];
 static size_t NClients;     /* # of valid entries in Clientsocks */
-static size_t NxmlClients;     /* # of valid entries in Clientsocks */
-
+static size_t NxmlClients;  /* # of valid entries in Clientxmlsocks */
+static size_t Nor20Clients; /* # of valid entries in Clientor20socks */
 
 /**** USB usblib 1.0 ****/
 
@@ -98,6 +99,15 @@ static int xmlclient(int fd)
     int i;
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if (fd == Clientxmlsocks[i].fd) return 1;
+    }
+    return 0;
+}
+
+static int or20client(int fd)
+{
+    int i;
+    for (i = 0; i < MAXCLISOCKETS; i++) {
+        if (fd == Clientor20socks[i].fd) return 1;
     }
     return 0;
 }
@@ -200,9 +210,9 @@ static void init_client(void)
     int i;
 
     for (i = 0; i < MAXCLISOCKETS; i++) {
-        Clientsocks[i].fd = Clientxmlsocks[i].fd = -1;
+        Clientsocks[i].fd = Clientxmlsocks[i].fd = Clientor20socks[i].fd = -1;
     }
-    NClients = NxmlClients = 0;
+    NClients = NxmlClients = Nor20Clients = 0;
 }
 
 /* Add new socket client */
@@ -241,6 +251,24 @@ static int add_xmlclient(int fd)
     return -1;
 }
 
+/* Add new or20 socket client */
+static int add_or20client(int fd)
+{
+    int i;
+
+    for (i = 0; i < MAXCLISOCKETS; i++) {
+        if (Clientor20socks[i].fd == -1) {
+            Clientor20socks[i].fd = fd;
+            Clientor20socks[i].events = POLLIN;
+            Clientor20socks[i].revents = 0;
+            Nor20Clients++;
+            return 0;
+        }
+    }
+    dbprintf("max OR20 clients exceeded %d\n", i);
+    return -1;
+}
+
 /* Delete socket client */
 static int del_client(int fd)
 {
@@ -255,6 +283,11 @@ static int del_client(int fd)
         if (Clientxmlsocks[i].fd == fd) {
             Clientxmlsocks[i].fd = -1;
             NxmlClients--;
+            return 0;
+        }
+        if (Clientor20socks[i].fd == fd) {
+            Clientor20socks[i].fd = -1;
+            Nor20Clients--;
             return 0;
         }
     }
@@ -274,8 +307,11 @@ static int copy_clients(struct pollfd *Clients)
         if (Clientxmlsocks[i].fd != -1) {
             *Clients++ = Clientxmlsocks[i];
         }
+        if (Clientor20socks[i].fd != -1) {
+            *Clients++ = Clientor20socks[i];
+        }
     }
-    return NClients+NxmlClients;
+    return NClients+NxmlClients+Nor20Clients;
 }
 /* Client sockets */
 
@@ -472,7 +508,7 @@ static int mydaemon(void)
 
     /**** sockets ****/
     socklen_t clilen; 
-    int clifd, listenfd, flashxmlfd;
+    int clifd, listenfd, flashxmlfd, or20fd;
     unsigned char buf[1024];
     int bytesIn;
     struct sockaddr_in cliaddr, servaddr;
@@ -580,11 +616,28 @@ static int mydaemon(void)
     rc = listen(flashxmlfd, 5);
     dbprintf("listen() %d/%d\n", rc, errno);
 
+    /* Listen socket for OR 2.0 clients */
+    or20fd = socket(AF_INET, SOCK_STREAM, 0);
+    dbprintf("or20fd %d\n", or20fd);
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SERVER_PORT+2);
+
+    rc = setsockopt(or20fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    dbprintf("setsockopt() %d/%d\n", rc, errno);
+    rc = bind(or20fd, (struct sockaddr*) &servaddr, sizeof(servaddr));
+    dbprintf("bind() %d/%d\n", rc, errno);
+    rc = listen(or20fd, 5);
+    dbprintf("listen() %d/%d\n", rc, errno);
+
     init_client();
     Clients[0].fd = listenfd;
     Clients[0].events = POLLIN;
     Clients[1].fd = flashxmlfd;
     Clients[1].events = POLLIN;
+    Clients[2].fd = or20fd;
+    Clients[2].events = POLLIN;
     PollTimeOut = -1;
 
     while (!Do_exit) {
@@ -594,11 +647,11 @@ static int mydaemon(void)
         /* Start appending records for socket clients to Clients array after 
          * listen, flashxml listen, and USB records
          */
-        nsockclients = copy_clients(&Clients[2+nusbfds]);
-        /* 1 for listen socket, 1 for flashxml listen socket, nusbfds for 
-         * libusb, nsockclients for socket clients
+        nsockclients = copy_clients(&Clients[3+nusbfds]);
+        /* 1 for listen socket, 1 for flashxml listen socket, 1 for or20 listen
+         * socket, nusbfds for libusb, nsockclients for socket clients
          */
-        npollfds = 2 + nusbfds + nsockclients;
+        npollfds = 3 + nusbfds + nsockclients;
         nready = poll(Clients, npollfds, PollTimeOut);
 #if 0
         dbprintf("poll() %d\n", nready);
@@ -615,15 +668,13 @@ static int mydaemon(void)
             /**** USB ****/
             libusb_handle_events_timeout(NULL, &timeout);
 
-            /**** sockets ****/
+            /**** listen sockets ****/
             if (Clients[0].revents & POLLIN) {
                 /* new client connection */
                 clilen = sizeof(cliaddr);
                 clifd  = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen);
                 dbprintf("accept() %d/%d\n", clifd, errno);
-
                 r = add_client(clifd);
-
                 if (--nready <= 0) continue;
             }
             if (Clients[1].revents & POLLIN) {
@@ -631,13 +682,20 @@ static int mydaemon(void)
                 clilen = sizeof(cliaddr);
                 clifd  = accept(flashxmlfd, (struct sockaddr *)&cliaddr, &clilen);
                 dbprintf("flashxml accept() %d/%d\n", clifd, errno);
-
                 r = add_xmlclient(clifd);
-
                 if (--nready <= 0) continue;
             }
 
-            for (i = 2+nusbfds; i < npollfds; i++) {
+            if (Clients[2].revents & POLLIN) {
+                /* new OR2.0 client connection */
+                clilen = sizeof(cliaddr);
+                clifd  = accept(or20fd, (struct sockaddr *)&cliaddr, &clilen);
+                dbprintf("or20 accept() %d/%d\n", clifd, errno);
+                r = add_or20client(clifd);
+                if (--nready <= 0) continue;
+            }
+
+            for (i = 3+nusbfds; i < npollfds; i++) {
                 if ((clifd = Clients[i].fd) >= 0) {
                     /* dbprintf("client %d revents 0x%X\n", i, Clients[i].revents); */
                     if (Clients[i].revents & (POLLIN|POLLERR)) {

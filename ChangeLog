@@ -1,3 +1,14 @@
+mochad-0.1.9
+
+    * Add commands getstatus and getstatussec.
+    getstatus <HU>          -- Get device HU on/off status
+    getstatus <HU> xdim     -- Get device xdim status
+    getstatusec <RFSECAddr> -- Get RF security device status such as DS10A.
+
+    * Add port 1101 for OpenRemote 2.0. This is similar to port 1099 but does
+    not include unsolicited event messages. OR polls for device events using
+    getstatus and getstatussec.
+
 mochad-0.1.8
 
     * Add support for X10 KR15A Big Red Button.

@@ -328,7 +328,7 @@ void cm15a_decode_plc(int fd, unsigned char *buf, size_t len)
             sockprintf(fd, "%cx PL House: %c Func: %s Data: %02X Command: %02X\n",
                     (buf[0] == 0x5a) ? 'R' : 'T',
                     housechar, Funcname[funcint], buf[5], buf[6]);
-
+            hua_setstatus_xdim(housechar-'A', buf[5]);
             break;
         case 0x08:  /* Extended receive follows */
             /* This is received when an extended pre-set dim is sent.
@@ -357,7 +357,7 @@ void cm15a_decode_plc(int fd, unsigned char *buf, size_t len)
             sockprintf(fd, "%cx PL House: %c Func: %s Data: %02X Command: %02X\n",
                     (buf[0] == 0x5a) ? 'R' : 'T',
                     housechar, Funcname[funcint], buf[4], buf[3]);
-
+            hua_setstatus_xdim(housechar-'A', buf[4]);
             break;
         default:
             dbprintf("Not supported %d\n", buf[2]);

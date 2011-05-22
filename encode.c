@@ -748,7 +748,7 @@ int processcommandline(int fd, char *aLine)
                 arg1 = strtok(NULL, " ");
                 if (arg1) {
                     if (strcmp(arg1, "XDIM") == 0) {    /* getstatus a1 xdim */
-                        statusprintf(fd, "-1\n");
+                        statusprintf(fd,"%d\n",hua_getstatus_xdim(house, unit));
                     }
                     else {  /* getstatus a1 ? */
                         statusprintf(fd, "-1\n");

@@ -49,6 +49,8 @@ static unsigned int  X10sensorcount = 0;
 static houseunitaddrs_t HouseUnitState;
 /* 0x00 = not selected, '1' = selected */
 static houseunitaddrs_t HouseUnitSelected;
+/* 0..255 dim as set by xdim command */
+static houseunitaddrs_t HouseUnitDim;
 /* house/unit/func state per house code
  * 0 = house/unit code, 1 = house/function */
 static int X10protostate[16];
@@ -63,6 +65,7 @@ void hua_sec_init(void)
 {
     memset(HouseUnitState, 0, sizeof(HouseUnitState));
     memset(HouseUnitSelected, 0, sizeof(HouseUnitSelected));
+    memset(HouseUnitDim, 0, sizeof(HouseUnitDim));
     memset(X10protostate, 0, sizeof(X10protostate));
 
     memset(X10sensors, 0, sizeof(X10sensors));
@@ -144,9 +147,26 @@ unsigned char hua_getstatus(int house, int unit)
     return HouseUnitState[house][unit];
 }
 
-int hua_getstatus_xdim(int house, int unit)
+unsigned char hua_getstatus_xdim(int house, int unit)
 {
-    return 32;  // TODO add xdim status tracking
+    return HouseUnitDim[house][unit];
+}
+
+void hua_setstatus_xdim(int house, int xdim)
+{
+    int u;
+
+    /* dbprintf("%s(%d,%d)\n", __func__, house, xdim); */
+    X10protostate[house] = 1;
+    for (u = 0; u < 16; u++) {
+        if (HouseUnitSelected[house][u]) {
+            HouseUnitDim[house][u] = xdim;
+            if (xdim > 0)
+                HouseUnitState[house][u] = '1';
+            else
+                HouseUnitState[house][u] = '0';
+        }
+    }
 }
 
 void hua_add(int house, int unit)
@@ -194,8 +214,13 @@ static void hua_func(int house, unsigned char func)
     /* dbprintf("%s(%d,%d)\n", __func__, house, func); */
     X10protostate[house] = 1;
     for (u = 0; u < 16; u++) {
-        if (HouseUnitSelected[house][u])
+        if (HouseUnitSelected[house][u]) {
             HouseUnitState[house][u] = func;
+            if (func == '1')
+                HouseUnitDim[house][u] = 63;
+            else
+                HouseUnitDim[house][u] = 0;
+        }
     }
     // hua_dbprint();
     /* dbprintf("%s exit\n", __func__); */
