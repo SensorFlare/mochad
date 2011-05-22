@@ -1,3 +1,7 @@
+mochad-0.1.10
+
+    * Fix major client socket problem. Commands from clients stopped working.
+
 mochad-0.1.9
 
     * Add commands getstatus and getstatussec.

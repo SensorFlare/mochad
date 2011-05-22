@@ -3,6 +3,11 @@ PL (power line) controller and the CM19A RF controller.
 
 mochad stands for Multiple Online Controllers for Home Automation Daemon.
 
+0.1.10 Fix major client problem. Commands from clients stopped working.
+0.1.9 Add support for OpenRemote 2.0 with iPhone and Android clients.
+0.1.8 Add support for Chumby application.
+
+
 == Build it
 
 mochad compiles and runs on Ubuntu 10.04 and 10.10. The libusb-1.0 development

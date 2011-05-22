@@ -220,12 +220,14 @@ static int add_client(int fd)
 {
     int i;
 
+    dbprintf("add_client(%d)\n", fd);
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if (Clientsocks[i].fd == -1) {
             Clientsocks[i].fd = fd;
             Clientsocks[i].events = POLLIN;
             Clientsocks[i].revents = 0;
             NClients++;
+            dbprintf("add_client: i %d NClients %d\n", i, NClients);
             return 0;
         }
     }
@@ -238,12 +240,14 @@ static int add_xmlclient(int fd)
 {
     int i;
 
+    dbprintf("add_xmlclient(%d)\n", fd);
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if (Clientxmlsocks[i].fd == -1) {
             Clientxmlsocks[i].fd = fd;
             Clientxmlsocks[i].events = POLLIN;
             Clientxmlsocks[i].revents = 0;
             NxmlClients++;
+            dbprintf("add_xmlclient: i %d NxmlClients %d\n", i, NxmlClients);
             return 0;
         }
     }
@@ -256,12 +260,14 @@ static int add_or20client(int fd)
 {
     int i;
 
+    dbprintf("add_or20client(%d)\n", fd);
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if (Clientor20socks[i].fd == -1) {
             Clientor20socks[i].fd = fd;
             Clientor20socks[i].events = POLLIN;
             Clientor20socks[i].revents = 0;
             Nor20Clients++;
+            dbprintf("add_or20client: i %d Nor20Clients %d\n", i, Nor20Clients);
             return 0;
         }
     }
@@ -274,24 +280,28 @@ static int del_client(int fd)
 {
     int i;
 
+    dbprintf("del_client(%d)\n", fd);
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if (Clientsocks[i].fd == fd) {
             Clientsocks[i].fd = -1;
             NClients--;
+            dbprintf("del_client: i %d NClients %d\n", i, NClients);
             return 0;
         }
         if (Clientxmlsocks[i].fd == fd) {
             Clientxmlsocks[i].fd = -1;
             NxmlClients--;
+            dbprintf("del_client: i %d NxmlClients %d\n", i, NxmlClients);
             return 0;
         }
         if (Clientor20socks[i].fd == fd) {
             Clientor20socks[i].fd = -1;
             Nor20Clients--;
+            dbprintf("del_client: i %d Nor20Clients %d\n", i, Nor20Clients);
             return 0;
         }
     }
-    dbprintf("fd not found %d\n", fd);
+    dbprintf("del_client:fd not found %d\n", fd);
     return -1;
 }
 
@@ -300,6 +310,7 @@ static int copy_clients(struct pollfd *Clients)
 {
     int i;
 
+    dbprintf("copy_clients\n");
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if (Clientsocks[i].fd != -1) {
             *Clients++ = Clientsocks[i];
@@ -311,6 +322,7 @@ static int copy_clients(struct pollfd *Clients)
             *Clients++ = Clientor20socks[i];
         }
     }
+    dbprintf("copy_clients %d\n", NClients+NxmlClients+Nor20Clients);
     return NClients+NxmlClients+Nor20Clients;
 }
 /* Client sockets */
@@ -569,7 +581,7 @@ static int mydaemon(void)
     usbfds = libusb_get_pollfds(NULL);
     dbprintf("usbfds %p %p %p %p %p\n", usbfds, 
             usbfds[0], usbfds[1], usbfds[2], usbfds[3]);
-    nusbfds = 1;        /* Skip over listen fd at [0] */
+    nusbfds = 3;        /* Skip over listen fd at [0,1,2] */
     for (i = 0; usbfds[i] != NULL; i++) {
         dbprintf(" %lu: %p fd %d %04X\n", nusbfds, 
                 usbfds[i], usbfds[i]->fd, usbfds[i]->events);
@@ -578,7 +590,7 @@ static int mydaemon(void)
         Clients[nusbfds].revents = 0;
         nusbfds++;
     }
-    nusbfds--;  /* Adjust for skipping [0] */
+    nusbfds -= 3;  /* Adjust for skipping 0,1,2 */
     dbprintf("nusbfds %lu\n", nusbfds);
     memset(&timeout, 0, sizeof(timeout));
     if (Cm19a)
@@ -645,7 +657,7 @@ static int mydaemon(void)
         int npollfds;
 
         /* Start appending records for socket clients to Clients array after 
-         * listen, flashxml listen, and USB records
+         * listen, flashxml listen, or20 listen, and USB records
          */
         nsockclients = copy_clients(&Clients[3+nusbfds]);
         /* 1 for listen socket, 1 for flashxml listen socket, 1 for or20 listen
