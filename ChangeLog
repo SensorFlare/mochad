@@ -1,3 +1,7 @@
+mochad-0.1.11
+
+    * Fix xdim (extended dim) that only worked for unit code 3.
+
 mochad-0.1.10
 
     * Fix major client socket problem. Commands from clients stopped working.

@@ -152,21 +152,17 @@ unsigned char hua_getstatus_xdim(int house, int unit)
     return HouseUnitDim[house][unit];
 }
 
-void hua_setstatus_xdim(int house, int xdim)
+void hua_setstatus_xdim(int house, int unit, int xdim)
 {
-    int u;
-
     /* dbprintf("%s(%d,%d)\n", __func__, house, xdim); */
+    hua_init(house);
+    HouseUnitSelected[house][unit] = '1';
     X10protostate[house] = 1;
-    for (u = 0; u < 16; u++) {
-        if (HouseUnitSelected[house][u]) {
-            HouseUnitDim[house][u] = xdim;
-            if (xdim > 0)
-                HouseUnitState[house][u] = '1';
-            else
-                HouseUnitState[house][u] = '0';
-        }
-    }
+    HouseUnitDim[house][unit] = xdim;
+    if (xdim > 0)
+        HouseUnitState[house][unit] = '1';
+    else
+        HouseUnitState[house][unit] = '0';
 }
 
 void hua_add(int house, int unit)
@@ -193,6 +189,10 @@ static void hua_func_all(int house, unsigned char func)
     X10protostate[house] = 1;
     for (u = 0; u < 16; u++) {
         HouseUnitState[house][u] = func;
+        if (func == '1')
+            HouseUnitDim[house][u] = 63;
+        else
+            HouseUnitDim[house][u] = 0;
     }
     // hua_dbprint();
 }

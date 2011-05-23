@@ -76,23 +76,23 @@ static const char Paritytable[256] = {
 };
 
 static const unsigned char HouseUnitTable[] = {
-//  House code char Unit code
-    'M',    //      13
-    'E',    //       5
-    'C',    //       3
-    'K',    //      11
-    'O',    //      15
-    'G',    //       7
-    'A',    //       1
-    'I',    //       9
-    'N',    //      14
-    'F',    //       6
-    'D',    //       4
-    'L',    //      12
-    'P',    //      15
-    'H',    //       8
-    'B',    //       2
-    'J',    //      10
+//  House code char Unit code   Index
+    'M',    //      13          00
+    'E',    //       5          01
+    'C',    //       3          02
+    'K',    //      11          03
+    'O',    //      15          04
+    'G',    //       7          05
+    'A',    //       1          06
+    'I',    //       9          07
+    'N',    //      14          08
+    'F',    //       6          09
+    'D',    //       4          10
+    'L',    //      12          11
+    'P',    //      15          12
+    'H',    //       8          13
+    'B',    //       2          14
+    'J',    //      10          15
 };
 
 static const unsigned char HouseUnitTableRF[] = {
@@ -145,6 +145,12 @@ static int hfc_decode(unsigned char houseunit, char *housechar)
     *housechar = HouseUnitTable[(houseunit & 0xf0) >> 4];
     return (houseunit & 0x0f);
 }
+
+static int uc_decode(unsigned char unit)
+{
+    return (HouseUnitTable[unit & 0x0f] -'A') + 1;
+}
+
 
 // 5D 20 64 9B 00 FB -- A9 ON
 // 64 = A = *housechar
@@ -310,7 +316,7 @@ void cm15a_decode_plc(int fd, unsigned char *buf, size_t len)
             /* PL B3 XDIM 31
              * Header 8 bits (7)
              * House code: 4 bits, function code: 4 bits (7)
-             * Length: 8 bits = 2
+             * Unit code: 0x02 = unit 3
              * Data: 8 bits
              * Command: 8 bits
              */
@@ -322,25 +328,24 @@ void cm15a_decode_plc(int fd, unsigned char *buf, size_t len)
                 return;
             }
             funcint = hfc_decode(buf[3], &housechar);
-            if (buf[4] != 2) {
-                dbprintf("data length must be 2 != %d\n", buf[4]);
-            }
-            sockprintf(fd, "%cx PL House: %c Func: %s Data: %02X Command: %02X\n",
+            unitint = uc_decode(buf[4]);
+            sockprintf(fd, "%cx PL HouseUnit: %c%d Func: %s Data: %02X Command: %02X\n",
                     (buf[0] == 0x5a) ? 'R' : 'T',
-                    housechar, Funcname[funcint], buf[5], buf[6]);
-            hua_setstatus_xdim(housechar-'A', buf[5]);
+                    housechar, unitint, Funcname[funcint], buf[5], buf[6]);
+            hua_setstatus_xdim(housechar-'A', unitint-1, buf[5]);
             break;
         case 0x08:  /* Extended receive follows */
             /* This is received when an extended pre-set dim is sent.
              * Note the byte order of the last 4 bytes is reversed compared
              * to Tx above.
              */
-            /* Sample: 5A 05 08 31 21 02 E7 */
+            /* Sample: 5A 05 08 31 21 02 E7     B3 */
+            /* Sample: 5A 05 08 31 2F 0A E7     B4 */
             /* PL B3 XDIM 33
              * Header 8 bits (8)
              * Command: 8 bits  0x31 pre-set dim
              * Data: 8 bits     0x21 = 33 dim level
-             * Length: 8 bits = 2
+             * Unit code: 4 bits, 0x02 = unit 3, 0x0a = unit 4
              * House code: 4 bits, function code: 4 bits (7)
              */
             if (len < 7) {
@@ -351,13 +356,11 @@ void cm15a_decode_plc(int fd, unsigned char *buf, size_t len)
                 return;
             }
             funcint = hfc_decode(buf[6], &housechar);
-            if (buf[5] != 2) {
-                dbprintf("data length must be 2 != %d\n", buf[5]);
-            }
-            sockprintf(fd, "%cx PL House: %c Func: %s Data: %02X Command: %02X\n",
+            unitint = uc_decode(buf[5]);
+            sockprintf(fd, "%cx PL HouseUnit: %c%d Func: %s Data: %02X Command: %02X\n",
                     (buf[0] == 0x5a) ? 'R' : 'T',
-                    housechar, Funcname[funcint], buf[4], buf[3]);
-            hua_setstatus_xdim(housechar-'A', buf[4]);
+                    housechar, unitint, Funcname[funcint], buf[4], buf[3]);
+            hua_setstatus_xdim(housechar-'A', unitint-1, buf[4]);
             break;
         default:
             dbprintf("Not supported %d\n", buf[2]);

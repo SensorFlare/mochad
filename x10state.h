@@ -36,6 +36,6 @@ void hua_show(int fd);
 
 unsigned char hua_getstatus(int house, int unit);
 unsigned char hua_getstatus_xdim(int house, int unit);
-void hua_setstatus_xdim(int house, int xdim);
+void hua_setstatus_xdim(int house, int unit, int xdim);
 int hua_getstatus_sec(int rf8bitaddr, unsigned long rfaddr);
 

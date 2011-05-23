@@ -405,6 +405,35 @@ static int pl_tx_houseunit(int fd, int house, int unit)
     return x10_write(buf+2, 2);
 }
 
+/* Extended dim */
+static int pl_tx_houseunitfunc(int fd, int house, int unit, int func, int param)
+{
+    unsigned char buf[7];
+    int dims;
+    size_t nbuf;
+    unsigned char *xmitptr;
+
+    dbprintf("%s(%d,%d,%d,%d,%d)\n", __func__, fd, house, unit, func, param);
+    if (func != FUNC_EXTENDED_DIM) return -1;
+    /* Make buffer as if received so decoder prints */
+    buf[0] = 0x00;
+    buf[1] = 0x05;
+    buf[2] = 0x07;
+    nbuf = 7;  /* Decode 7 bytes */
+    buf[3] = x10housecode[house] << 4 | 0x7;
+    buf[4] = x10housecode[unit];  /* unit code */
+    dims = param & 0xFF;
+    buf[5] = dims;
+    buf[6] = 0x31;  /* Dim/Bright */
+    xmitptr = &buf[2];
+    cm15a_decode_plc(-1, buf, nbuf);
+    dbprintf("%d:", nbuf); hexdump(buf, nbuf);
+
+    /* Transmit only requires last 5 bytes */
+    hexdump(xmitptr, 5);
+    return x10_write(xmitptr, 5);
+}
+
 static int pl_tx_housefunc(int fd, int house, int func, int param)
 {
     unsigned char buf[7];
@@ -628,9 +657,8 @@ int processcommandline(int fd, char *aLine)
             if (unit < 0) {
                 /* Unit code is 0 but house code != 0 */
                 func = getfunc();
-                if (func < 0) return -1;
-                if (func == FUNC_DIM || func == FUNC_BRIGHT || 
-                        func==FUNC_EXTENDED_DIM) {
+                if (func < 0 || func == FUNC_EXTENDED_DIM) return -1;
+                if (func == FUNC_DIM || func == FUNC_BRIGHT) {
                     param = getparam();
                     if (param == -1) param = 1;
                     pl_tx_housefunc(fd, house, func, param);
@@ -639,18 +667,27 @@ int processcommandline(int fd, char *aLine)
                     pl_tx_housefunc(fd, house, func, 0);
             }
             else {
-                pl_tx_houseunit(fd, house, unit);
                 func = getfunc();
-                if (func < 0) return -1;
+                if (func < 0) {
+                    pl_tx_houseunit(fd, house, unit);
+                    return -1;
+                }
                 dbprintf("func %d\n", func);
-                if (func == FUNC_DIM || func == FUNC_BRIGHT ||
-                        func==FUNC_EXTENDED_DIM) {
+                if (func == FUNC_EXTENDED_DIM) {
+                    param = getparam();
+                    if (param == -1) param = 1; /* default is 1 dim */
+                    pl_tx_houseunitfunc(fd, house, unit, func, param);
+                }
+                else if (func == FUNC_DIM || func == FUNC_BRIGHT) {
                     param = getparam();
                     if (param == -1) param = 1;
+                    pl_tx_houseunit(fd, house, unit);
                     pl_tx_housefunc(fd, house, func, param);
                 }
-                else
+                else {
+                    pl_tx_houseunit(fd, house, unit);
                     pl_tx_housefunc(fd, house, func, 0);
+                }
             }
         }
         else if (strcmp(command, "RF") == 0) {
