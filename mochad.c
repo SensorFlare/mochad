@@ -202,6 +202,16 @@ void sockhexdump(int fd, void *p, size_t len)
     sockprintf(fd, "%s\n", buf);
 }
 
+// Output Raw data with header for parsing by misterhouse
+void mh_sockhexdump(int fd, void *p, size_t len)
+{
+    char buf[(3*100)+1];
+
+    _hexdump(p, len, buf, sizeof(buf));
+    sockprintf(fd, "Raw data received: %s\n", buf);
+}
+
+
 static int Do_exit = 0;
 static int Reattach = 0;
 
@@ -781,6 +791,9 @@ static void printcopy(void)
     fflush(NULL);
 }
 
+// This affects whether decode.c will show raw frame data for debugging RF connectivity
+// as well as providing raw data for parsing by users like misterhouse's X10_CMxx module.
+int raw_data = 0;
 int main(int argc, char *argv[])
 {
     int rc, i;
@@ -794,6 +807,8 @@ int main(int argc, char *argv[])
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0)
             foreground = 1;
+        if (strcmp(argv[i], "--raw-data") == 0)
+            raw_data = 1;
         else if (strcmp(argv[i], "--version") == 0) {
             printf("%s\n", PACKAGE_STRING);
             printcopy();

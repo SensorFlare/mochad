@@ -879,8 +879,10 @@ void cm15a_decode(int fd, unsigned char *buf, unsigned int len)
         *p = 0x5d;
         memcpy(p+1, buf, len);
         len++;
-        cm15a_decode_rf(fd, p, len);
-        return;
+    }
+
+    if (raw_data) {
+	mh_sockhexdump(fd, p, len);
     }
 
     switch (*p) 

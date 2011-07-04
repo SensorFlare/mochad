@@ -1,0 +1,29 @@
+#!/bin/bash                
+                           
+# By marc_soft@merlins.org.
+                           
+# This script is designed to get mochad raw data to a fifo.
+# This is used as an input source for misterhouse,
+# See misterhouse/lib/X10_CMxx.pm for more details.
+                           
+# For this script to be useful linux with udev, you'll want
+# to edit /etc/udev/rules.d/91-usb-x10-controllers.rules
+# and make sure this script is run instead of the mochad binary.
+                           
+FIFO=/var/run/CM19a        
+                           
+# Kill left over daemon just in case.
+killall mochad 2>/dev/null 
+                           
+/bin/rm $FIFO 2>/dev/null  
+mkfifo $FIFO
+
+# mochad forks off.
+/usr/local/bin/mochad --raw-data
+
+( while :
+do
+       nc localhost 1099 > $FIFO
+       # This will restart nc as long as the mochad daemon is running.
+       pgrep -f /usr/local/bin/mochad > /dev/null || break
+done ) &

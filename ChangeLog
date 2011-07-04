@@ -1,3 +1,8 @@
+mochad-0.1.12
+
+    * Add --raw-data option from Marc Merlin. Programs such as MisterHouse
+    can decode the raw RF data.
+
 mochad-0.1.11
 
     * Fix xdim (extended dim) that only worked for unit code 3.

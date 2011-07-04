@@ -17,6 +17,8 @@
  * along with mochad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+extern int raw_data;
+
 const char *findSecEventName(unsigned char secev);
 
 const char *findSecRemoteKeyName(unsigned char secev);

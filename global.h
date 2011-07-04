@@ -42,3 +42,6 @@ int sockprintf(int fd, const char *fmt, ...);
 void hexdump(void *p, size_t len);
 
 void sockhexdump(int fd, void *p, size_t len);
+
+void mh_sockhexdump(int fd, void *p, size_t len);
+

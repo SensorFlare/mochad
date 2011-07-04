@@ -91,6 +91,23 @@ house codes. This can be changed using the rftopl command (RF to PL repeater).
 Please see http://sourceforge.net/apps/mediawiki/mochad/index.php?title=Main_Page
 for more details on command and event messages.
 
+
+If you want to debug X10 RF, or gateway raw frames to another program, you can
+use the --raw-data argument.
+See apps/mochad.scr for an example on how to gateway frames with misterhouse.
+
+Another use is to simply be able to get all the raw RF frames to see if the
+multiple copies received are identical (good), off by a few bits (RF marginal),
+or nonsensical (bad).
+
+    07/01 23:34:42 Rx RF HouseUnit: A1 Func: Off
+    07/01 23:34:42 Raw data received: 5D 20 60 9F 20 DF 
+    07/01 23:34:42 Raw data received: 5D 20 60 9F 20 DF 
+    07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF 
+    07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF 
+    07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF
+
+
 == Multiple controllers
 
 The Perl program mochamon.pl shows how to monitor more than one instance of
