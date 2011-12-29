@@ -840,6 +840,7 @@ void cm15a_encode(int fd, unsigned char * buf, size_t buflen)
             *remptr = '\0';
             if (strlen(remainder)) {
                 processcommandline(fd, remainder);
+                if (or20client(fd)) del_client(fd);
             }
             remptr = remainder;
         }

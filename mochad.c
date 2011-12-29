@@ -103,7 +103,7 @@ static int xmlclient(int fd)
     return 0;
 }
 
-static int or20client(int fd)
+int or20client(int fd)
 {
     int i;
     for (i = 0; i < MAXCLISOCKETS; i++) {
@@ -286,7 +286,7 @@ static int add_or20client(int fd)
 }
 
 /* Delete socket client */
-static int del_client(int fd)
+int del_client(int fd)
 {
     int i;
 
@@ -305,6 +305,9 @@ static int del_client(int fd)
             return 0;
         }
         if (Clientor20socks[i].fd == fd) {
+            sockprintf(fd, "ok\n");
+            shutdown(fd, SHUT_RDWR);
+            close(fd);
             Clientor20socks[i].fd = -1;
             Nor20Clients--;
             dbprintf("del_client: i %d Nor20Clients %d\n", i, Nor20Clients);

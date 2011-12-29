@@ -1,3 +1,7 @@
+mochad-0.1.14pre
+
+    * Fix OpenRemote too many open sockets problem.
+
 mochad-0.1.13
 
     * Fix -d debug command line option.
