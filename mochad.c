@@ -501,7 +501,7 @@ static int alloc_transfers(void)
 
 int write_usb(unsigned char *buf, size_t len)
 {
-    int r;
+    int r, i;
 
     dbprintf("usb len %lu ", (unsigned long)len);
     hexdump(buf, len);
@@ -511,7 +511,8 @@ int write_usb(unsigned char *buf, size_t len)
     r = libusb_submit_transfer(IntrOut_transfer);
     if (r < 0) {
         libusb_cancel_transfer(IntrOut_transfer);
-        while (IntrOut_transfer)
+        i = 100;
+        while (IntrOut_transfer && i--)
             if (libusb_handle_events(NULL) < 0)
                 break;
         return r;
@@ -759,7 +760,8 @@ static int mydaemon(void)
             goto out_deinit;
     }
 
-    while (IntrOut_transfer || IntrIn_transfer)
+    i = 100;
+    while ((IntrOut_transfer || IntrIn_transfer) && i--)
         if (libusb_handle_events(NULL) < 0)
             break;
 
@@ -807,7 +809,7 @@ int main(int argc, char *argv[])
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0)
             foreground = 1;
-        if (strcmp(argv[i], "--raw-data") == 0)
+        else if (strcmp(argv[i], "--raw-data") == 0)
             raw_data = 1;
         else if (strcmp(argv[i], "--version") == 0) {
             printf("%s\n", PACKAGE_STRING);

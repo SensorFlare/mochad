@@ -1,3 +1,16 @@
+mochad-0.1.13
+
+    * Fix -d debug command line option.
+
+    * The SP554A motion sensor with the switch in the home/away position is
+    now correctly decoded.
+
+    * Add exit to potential infinite loops.
+
+    * Add message for DS12A with cover off (tamper). The DS12A looks like
+    two DS10As with the cover on.
+
+
 mochad-0.1.12
 
     * Add --raw-data option from Marc Merlin. Programs such as MisterHouse

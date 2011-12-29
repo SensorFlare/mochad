@@ -372,6 +372,7 @@ void cm15a_decode_plc(int fd, unsigned char *buf, size_t len)
 /* TODO sort and binary search? Or make 256 entry table and index. Not sure how
  * sparse the table would be.
  * 1<<7    1=close/normal, 0=open/alert
+ * 1<<6    1=cover off(tamper), 0=cover on
  * 1<<2    delay 0=max, 1=min
  * 1<<0    1=battery low?, 0=battery OK
  */
@@ -382,8 +383,12 @@ static const struct SecEventRec SecEventNames[] = {
     {0x8D, "Motion_normal_low_MS10A"},    /* MS10 does not emit this */
     {0x04, "Contact_alert_min_DS10A"},
     {0x84, "Contact_normal_min_DS10A"},
+    {0x44, "Contact_alert_min_tamper_DS12A"},
+    {0xC4, "Contact_normal_min_tamper_DS12A"},
     {0x00, "Contact_alert_max_DS10A"},
     {0x80, "Contact_normal_max_DS10A"},
+    {0x40, "Contact_alert_max_tamper_DS12A"},
+    {0xC0, "Contact_normal_max_tamper_DS12A"},
     {0x01, "Contact_alert_min_low_DS10A"},    /* _low = low battery */
     {0x81, "Contact_normal_min_low_DS10A"},
     {0x05, "Contact_alert_max_low_DS10A"},
@@ -408,6 +413,8 @@ static const struct SecEventRec SecRemoteKeyNames[] = {
     {0xC2, "Lights_Off_SH624"},
     {0x04, "Motion_alert_SP554A"},   //DG
     {0x84, "Motion_normal_SP554A"},  //DG
+    {0x0C, "Motion_alert_Home_Away_SP554A"},
+    {0x8C, "Motion_normal_Home_Away_SP554A"},
     {0x00, NULL},
 };
 

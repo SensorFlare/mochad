@@ -3,6 +3,8 @@ PL (power line) controller and the CM19A RF controller.
 
 mochad stands for Multiple Online Controllers for Home Automation Daemon.
 
+0.1.13 Fix -d debug option. Add support for DS12A.
+0.1.12 Add --raw-data option.
 0.1.11 Fix xdim (extended dim) that only worked for unit code 3.
 0.1.10 Fix major client problem. Commands from clients stopped working.
 0.1.9 Add support for OpenRemote 2.0 with iPhone and Android clients.
@@ -15,6 +17,11 @@ mochad compiles and runs on Ubuntu 10.04 and 10.10. The libusb-1.0 development
 files are required. To install,
 
     sudo apt-get install libusb-1.0-0-dev
+
+If you are building on a Beagleboard/Beaglebone (http://beagleboard.org)
+using the native compiler, do the following to install libusb-1.0.
+
+    opkg install libusb-1.0-dev
 
 The usual pattern for building the code applies.
 
