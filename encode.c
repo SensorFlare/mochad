@@ -447,22 +447,6 @@ static int pl_tx_housefunc(int fd, int house, int func, int param)
     switch (func) {
         case FUNC_DIM:
         case FUNC_BRIGHT:
-#if 0
-            buf[1] = 0x03;
-            nbuf = 5;  /* Decode 5 bytes */
-            buf[2] = 0x02;
-            dims = ((param & 0x1F) << 3);
-            buf[3] = dims | 0x01;
-            buf[4] = x10housecode[house] << 4 | func;
-            xmitptr = &buf[3];
-            cm15a_decode_plc(-1, buf, nbuf);
-            dbprintf("%d:", nbuf); hexdump(buf, nbuf);
-
-            /* Transmit only requires last 2 bytes */
-            *xmitptr = 0x06 | dims;
-            hexdump(xmitptr, 2);
-            return x10_write(xmitptr, 2);
-#else
             buf[1] = 0x03;
             nbuf = 5;  /* Decode 5 bytes */
             buf[2] = 0x02;
@@ -481,7 +465,6 @@ static int pl_tx_housefunc(int fd, int house, int func, int param)
             *xmitptr = 0x06 | dims;
             hexdump(xmitptr-2, 3);
             return x10_write(xmitptr-2, 3);
-#endif
         case FUNC_EXTENDED_DIM:
             buf[1] = 0x05;
             buf[2] = 0x07;
@@ -651,6 +634,7 @@ int processcommandline(int fd, char *aLine)
     command = strtok(aLine, " ");
     if (command) {
         if (strcmp(command, "PL") == 0) {
+            if (or20client(fd)) statusprintf(fd, "ok\n");
             house = getdeviceaddr(&unit);
             dbprintf("house %d unit %d\n", house, unit);
             if (house < 0) return -1;
@@ -691,6 +675,7 @@ int processcommandline(int fd, char *aLine)
             }
         }
         else if (strcmp(command, "RF") == 0) {
+            if (or20client(fd)) statusprintf(fd, "ok\n");
             house = getdeviceaddr(&unit);
             dbprintf("house %d unit %d\n", house, unit);
             if (house < 0) return -1;
@@ -699,6 +684,7 @@ int processcommandline(int fd, char *aLine)
             rf_tx_houseunitfunc(fd, house, unit, func);
         }
         else if (strcmp(command, "RFSEC") == 0) {
+            if (or20client(fd)) statusprintf(fd, "ok\n");
             rfaddr = 0;
             rf8bitaddr = getrfaddr(&rfaddr);
             dbprintf("rfaddr 8bit: %d %X\n", rf8bitaddr, rfaddr);
@@ -709,6 +695,7 @@ int processcommandline(int fd, char *aLine)
             rfsec_tx(fd, rf8bitaddr, rfaddr, func);
         }
         else if (strcmp(command, "RFCAM") == 0) {
+            if (or20client(fd)) statusprintf(fd, "ok\n");
             /* Unit number is ignored */
             house = getdeviceaddr(&unit);
             if (house < 0) return -1;
@@ -736,6 +723,7 @@ int processcommandline(int fd, char *aLine)
             }
         }
         else if (strcmp(command, "PT") == 0) {
+            if (or20client(fd)) statusprintf(fd, "ok\n");
             len = gethexdata(x10bytes8);
             hexdump (x10bytes8, len);
             if (len > 0) x10_write(x10bytes8, len);
@@ -763,10 +751,12 @@ int processcommandline(int fd, char *aLine)
         }
 #endif
         else if (strcmp(command, "RFTOPL") == 0) {
+            if (or20client(fd)) statusprintf(fd, "ok\n");
             RfToPl16 = gethousecodes();
             sockprintf(fd, "RfToPl %04X\n", RfToPl16);
         }
         else if (strcmp(command, "RFTORF") == 0) {
+            if (or20client(fd)) statusprintf(fd, "ok\n");
             arg1 = strtok(NULL, " ");
             if (arg1) RfToRf16 = (unsigned short)strtoul(arg1, NULL, 10);
             sockprintf(fd, "RfToRf %04X\n", RfToRf16);

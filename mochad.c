@@ -52,7 +52,7 @@
 
 #include "global.h"
 
-#define SERVER_PORT (1099)
+#define SERVER_PORT     (1099)
 #define MAXCLISOCKETS   (32)
 #define MAXSOCKETS      (1+MAXCLISOCKETS)
                             /* first socket=listen socket, 20 client sockets */
@@ -103,13 +103,23 @@ static int xmlclient(int fd)
     return 0;
 }
 
+/* Return 0 if the socket fd is not an OpenRemote 2.0 client.
+ * Else return 1. OR clients connect to SERVER_PORT+2 (1101)  so that is
+ * used.
+ *
+ */
 int or20client(int fd)
 {
-    int i;
-    for (i = 0; i < MAXCLISOCKETS; i++) {
-        if (fd == Clientor20socks[i].fd) return 1;
+    struct sockaddr_in locl;
+    socklen_t locllen;
+
+    locllen = sizeof(locl);
+    if (getsockname(fd, (struct sockaddr *)&locl, &locllen) < 0) {
+        dbprintf("getsockname -1/%d\n", errno);
+        return 0;
     }
-    return 0;
+    dbprintf("locl port %d\n", locl.sin_port);
+    return (locl.sin_port == (SERVER_PORT + 2));
 }
 
 /*
@@ -305,7 +315,6 @@ int del_client(int fd)
             return 0;
         }
         if (Clientor20socks[i].fd == fd) {
-            sockprintf(fd, "ok\n");
             shutdown(fd, SHUT_RDWR);
             close(fd);
             Clientor20socks[i].fd = -1;
@@ -624,7 +633,7 @@ static int mydaemon(void)
     dbprintf("setsockopt() %d/%d\n", rc, errno);
     rc = bind(listenfd, (struct sockaddr*) &servaddr, sizeof(servaddr));
     dbprintf("bind() %d/%d\n", rc, errno);
-    rc = listen(listenfd, 5);
+    rc = listen(listenfd, 128);
     dbprintf("listen() %d/%d\n", rc, errno);
 
     /* Listen socket for Flash XML clients */
@@ -639,7 +648,7 @@ static int mydaemon(void)
     dbprintf("setsockopt() %d/%d\n", rc, errno);
     rc = bind(flashxmlfd, (struct sockaddr*) &servaddr, sizeof(servaddr));
     dbprintf("bind() %d/%d\n", rc, errno);
-    rc = listen(flashxmlfd, 5);
+    rc = listen(flashxmlfd, 128);
     dbprintf("listen() %d/%d\n", rc, errno);
 
     /* Listen socket for OR 2.0 clients */
@@ -654,7 +663,7 @@ static int mydaemon(void)
     dbprintf("setsockopt() %d/%d\n", rc, errno);
     rc = bind(or20fd, (struct sockaddr*) &servaddr, sizeof(servaddr));
     dbprintf("bind() %d/%d\n", rc, errno);
-    rc = listen(or20fd, 5);
+    rc = listen(or20fd, 128);
     dbprintf("listen() %d/%d\n", rc, errno);
 
     init_client();
@@ -727,13 +736,11 @@ static int mydaemon(void)
                     if (Clients[i].revents & (POLLIN|POLLERR)) {
                         if ((bytesIn = read(clifd, buf, sizeof(buf))) < 0) {
                             dbprintf("read err %d\n", errno);
-                            if (errno == ECONNRESET) {
-                                close(clifd);
-                                del_client(clifd);
-                            }
-                            else {
+                            if (errno != ECONNRESET) {
                                 dbprintf("serious error %d\n", errno);
                             }
+                            close(clifd);
+                            del_client(clifd);
                         }
                         else if (bytesIn == 0) {
                             dbprintf("read EOF %d\n", bytesIn);
