@@ -118,8 +118,8 @@ int or20client(int fd)
         dbprintf("getsockname -1/%d\n", errno);
         return 0;
     }
-    dbprintf("locl port %d\n", locl.sin_port);
-    return (locl.sin_port == (SERVER_PORT + 2));
+    dbprintf("locl port %d\n", ntohs(locl.sin_port));
+    return (ntohs(locl.sin_port) == (SERVER_PORT + 2));
 }
 
 /*
