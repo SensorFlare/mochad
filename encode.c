@@ -274,7 +274,6 @@ static int getparam(void)
 {
     char *param;
 
-
     param = strtok(NULL, " ");
     if (!param) return -1;
     return strtol(param, NULL, 10);
@@ -405,26 +404,26 @@ static int pl_tx_houseunit(int fd, int house, int unit)
     return x10_write(buf+2, 2);
 }
 
-/* Extended dim */
-static int pl_tx_houseunitfunc(int fd, int house, int unit, int func, int param)
+/* Extended code 1 */
+static int pl_tx_extended_code_1(int fd, int house, int unit, int command, 
+        int subcmd, int param)
 {
     unsigned char buf[7];
     int dims;
     size_t nbuf;
     unsigned char *xmitptr;
 
-    dbprintf("%s(%d,%d,%d,%d,%d)\n", __func__, fd, house, unit, func, param);
-    if (func != FUNC_EXTENDED_DIM) return -1;
+    dbprintf("%s(%d,%d,%d,%d,%d,%d)\n", __func__, fd, house, unit, command,
+            subcmd, param);
     /* Make buffer as if received so decoder prints */
     buf[0] = 0x00;
     buf[1] = 0x05;
     buf[2] = 0x07;
     nbuf = 7;  /* Decode 7 bytes */
-    buf[3] = x10housecode[house] << 4 | 0x7;
+    buf[3] = (x10housecode[house] << 4) | 0x7;
     buf[4] = x10housecode[unit];  /* unit code */
-    dims = param & 0xFF;
-    buf[5] = dims;
-    buf[6] = 0x31;  /* Dim/Bright */
+    buf[5] = param & 0xFF;
+    buf[6] = ((command & 0x0F) << 4) | (subcmd & 0x0F);
     xmitptr = &buf[2];
     cm15a_decode_plc(-1, buf, nbuf);
     dbprintf("%d:", nbuf); hexdump(buf, nbuf);
@@ -660,13 +659,23 @@ int processcommandline(int fd, char *aLine)
                 if (func == FUNC_EXTENDED_DIM) {
                     param = getparam();
                     if (param == -1) param = 1; /* default is 1 dim */
-                    pl_tx_houseunitfunc(fd, house, unit, func, param);
+                    pl_tx_extended_code_1(fd, house, unit, 3, 1, param);
                 }
                 else if (func == FUNC_DIM || func == FUNC_BRIGHT) {
                     param = getparam();
                     if (param == -1) param = 1;
                     pl_tx_houseunit(fd, house, unit);
                     pl_tx_housefunc(fd, house, func, param);
+                }
+                else if (func == FUNC_EXTENDED_CODE_1) {
+                    int command, subcmd, data;
+                    command = getparam();
+                    if (command == -1) command = 0;
+                    subcmd = getparam();
+                    if (subcmd == -1) subcmd = 0;
+                    data = getparam();
+                    if (data == -1) data = 0;
+                    pl_tx_extended_code_1(fd, house, unit, command, subcmd, data);
                 }
                 else {
                     pl_tx_houseunit(fd, house, unit);
