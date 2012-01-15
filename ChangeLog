@@ -1,6 +1,9 @@
-mochad-0.1.14pre
+mochad-0.1.14
 
-    * Fix OpenRemote too many open sockets problem.
+    * Fix OpenRemote too many open sockets problem. This result in delayed
+    responses to button presses.
+    * Add extended_code_1 command. This can be used to send shutter/blinds
+    control commands.
 
 mochad-0.1.13
 

@@ -3,7 +3,7 @@ PL (power line) controller and the CM19A RF controller.
 
 mochad stands for Multiple Online Controllers for Home Automation Daemon.
 
-0.1.14pre Fix OpenRemote too many open sockets problem.
+0.1.14 Fix OpenRemote too many open sockets problem. Add shutters/blinds command.
 0.1.13 Fix -d debug option. Add support for DS12A.
 0.1.12 Add --raw-data option.
 0.1.11 Fix xdim (extended dim) that only worked for unit code 3.
@@ -115,6 +115,10 @@ or nonsensical (bad).
     07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF 
     07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF
 
+
+For examples of controlling shutters and blinds, see the following.
+
+https://sourceforge.net/apps/mediawiki/mochad/index.php?title=Shutter_and_Blinds
 
 == Multiple controllers
 
