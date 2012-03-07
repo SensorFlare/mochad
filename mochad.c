@@ -69,8 +69,7 @@ static size_t Nor20Clients; /* # of valid entries in Clientor20socks */
 /**** USB usblib 1.0 ****/
 
 #include <libusb-1.0/libusb.h>
-#define INTR_EP_1_IN    (0x81)
-#define INTR_EP_2_OUT   (0x02)
+uint8_t InEndpoint, OutEndpoint;
 
 static struct libusb_device_handle *Devh = NULL;
 static struct libusb_transfer *IntrOut_transfer = NULL;
@@ -398,6 +397,9 @@ static void initcm1Xa(const struct binarydata *p)
     }
 }
 
+/* Find CM15A or CM19A. The EU versions (CM15Pro and CM19Pro) have the same
+ * vendor and product IDs, respectively.
+ */
 static int find_cm15a(struct libusb_device_handle **devhptr)
 {
     int r;
@@ -437,6 +439,50 @@ static int find_cm15a(struct libusb_device_handle **devhptr)
     }
     syslog(LOG_NOTICE, (Cm19a) ? "Found CM19A" : "Found CM15A");
     return 0;
+}
+
+/* Find the in and out endpoint address in the device descriptors.
+ * This is required by newer CM19A that have changed endpoint addresses.
+ */
+static int get_endpoint_address(libusb_device_handle *devh, uint8_t *inendpt, uint8_t *outendpt)
+{
+    int r;
+    struct libusb_config_descriptor *config;
+    const struct libusb_interface *interfaces;
+    const struct libusb_interface_descriptor *interface_desc;
+    const struct libusb_endpoint_descriptor *endpoint_desc;
+    struct libusb_endpoint_descriptor endpt0, endpt1;
+    struct libusb_device *uDevice;
+    struct libusb_device_descriptor desc;
+    int i, j, k;
+
+    uDevice = libusb_get_device(devh);
+    if (r < 0) return r;
+
+    r = libusb_get_device_descriptor(uDevice, &desc);
+    if (r < 0) return r;
+
+    r = libusb_get_active_config_descriptor(uDevice, &config);
+    if (r < 0) return r;
+    interfaces = config->interface;
+    for (i = 0; i < config->bNumInterfaces; i++) {
+        interface_desc = interfaces->altsetting;
+        for (j = 0; j < interfaces->num_altsetting; j++) {
+            endpoint_desc = interface_desc->endpoint;
+            for (k = 0; k < interface_desc->bNumEndpoints; k++) {
+                if (endpoint_desc->bEndpointAddress & 0x80) {
+                    *inendpt = endpoint_desc->bEndpointAddress;
+                }
+                else {
+                    *outendpt = endpoint_desc->bEndpointAddress;
+                }
+                endpoint_desc++;
+            }
+            interface_desc++;
+        }
+        interfaces++;
+    }
+    libusb_free_config_descriptor(config);
 }
 
 static void IntrOut_cb(struct libusb_transfer *transfer)
@@ -502,7 +548,7 @@ static int alloc_transfers(void)
     IntrIn_transfer = libusb_alloc_transfer(0);
     if (!IntrIn_transfer)
         return -ENOMEM;
-    libusb_fill_interrupt_transfer(IntrIn_transfer, Devh, INTR_EP_1_IN, 
+    libusb_fill_interrupt_transfer(IntrIn_transfer, Devh, InEndpoint, 
             IntrInBuf, sizeof(IntrInBuf), IntrIn_cb, NULL, 0);
 
     IntrOut_transfer = libusb_alloc_transfer(0);
@@ -518,7 +564,7 @@ int write_usb(unsigned char *buf, size_t len)
     dbprintf("usb len %lu ", (unsigned long)len);
     hexdump(buf, len);
     memcpy(IntrOutBuf, buf, len);
-    libusb_fill_interrupt_transfer(IntrOut_transfer, Devh, INTR_EP_2_OUT, 
+    libusb_fill_interrupt_transfer(IntrOut_transfer, Devh, OutEndpoint, 
             IntrOutBuf, len, IntrOut_cb, NULL, 0);
     r = libusb_submit_transfer(IntrOut_transfer);
     if (r < 0) {
@@ -581,6 +627,15 @@ static int mydaemon(void)
         dbprintf("Could not find/open CM15A/CM19A %d\n", r);
         goto out;
     }
+
+    r = get_endpoint_address(Devh, &InEndpoint, &OutEndpoint);
+    if (r < 0) {
+        syslog(LOG_EMERG, "Could not find endpoints %d", r);
+        dbprintf("Could not find endpoints %d\n", r);
+        goto out_deinit;
+    }
+    syslog(LOG_NOTICE, "In endpoint 0x%02X, Out endpoint 0x%02X",
+            InEndpoint, OutEndpoint);
 
     r = do_init();
     if (r < 0)
@@ -794,7 +849,7 @@ out:
 
 static void printcopy(void)
 {
-    printf("Copyright (C) 2010-2011 Brian Uechi.\n");
+    printf("Copyright (C) 2010-2012 Brian Uechi.\n");
     printf("\n");
     printf("This program comes with NO WARRANTY.\n");
     printf("You may redistribute copies of this program\n");
