@@ -1,8 +1,12 @@
+mochad-0.1.15
+
+    * Add support for newer CM19A built in 2011 or later.
+
 mochad-0.1.14
 
     * Fix OpenRemote too many open sockets problem. This result in delayed
     responses to button presses.
-    * Add extended_code_1 command. This can be used to send shutter/blinds
+    * Add extended_code_1 command. This can be used to send shutters/blinds
     control commands.
 
 mochad-0.1.13

@@ -3,6 +3,7 @@ PL (power line) controller and the CM19A RF controller.
 
 mochad stands for Multiple Online Controllers for Home Automation Daemon.
 
+0.1.15 Add support for 2011 CM19A.
 0.1.14 Fix OpenRemote too many open sockets problem. Add shutters/blinds command.
 0.1.13 Fix -d debug option. Add support for DS12A.
 0.1.12 Add --raw-data option.
