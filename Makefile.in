@@ -161,6 +161,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+AM_CFLAGS = -O2 -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wreturn-type -Wcast-align
 mochad_SOURCES = mochad.c decode.c encode.c global.c x10state.c x10_write.c \
 		 decode.h encode.h global.h x10state.h x10_write.h
 

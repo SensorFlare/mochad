@@ -409,7 +409,6 @@ static int pl_tx_extended_code_1(int fd, int house, int unit, int command,
         int subcmd, int param)
 {
     unsigned char buf[7];
-    int dims;
     size_t nbuf;
     unsigned char *xmitptr;
 

@@ -44,5 +44,5 @@ int _dbprintf(const char *fmt, ...)
     strcat(fmtbig, fmt);
     buflen = vsprintf(buf, fmtbig, args);
     va_end(args);
-    return fprintf(stderr, buf);
+    return fprintf(stderr, "%s", buf);
 }

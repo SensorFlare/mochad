@@ -45,3 +45,8 @@ void sockhexdump(int fd, void *p, size_t len);
 
 void mh_sockhexdump(int fd, void *p, size_t len);
 
+int or20client(int fd);
+
+int del_client(int fd);
+
+

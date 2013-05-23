@@ -1,3 +1,5 @@
+AM_CFLAGS = -O2 -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wreturn-type -Wcast-align
+
 bin_PROGRAMS = mochad
 mochad_SOURCES = mochad.c decode.c encode.c global.c x10state.c x10_write.c \
 		 decode.h encode.h global.h x10state.h x10_write.h

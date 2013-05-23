@@ -451,13 +451,12 @@ static int get_endpoint_address(libusb_device_handle *devh, uint8_t *inendpt, ui
     const struct libusb_interface *interfaces;
     const struct libusb_interface_descriptor *interface_desc;
     const struct libusb_endpoint_descriptor *endpoint_desc;
-    struct libusb_endpoint_descriptor endpt0, endpt1;
     struct libusb_device *uDevice;
     struct libusb_device_descriptor desc;
     int i, j, k;
 
     uDevice = libusb_get_device(devh);
-    if (r < 0) return r;
+    if (!uDevice) return -1;
 
     r = libusb_get_device_descriptor(uDevice, &desc);
     if (r < 0) return r;
@@ -483,6 +482,7 @@ static int get_endpoint_address(libusb_device_handle *devh, uint8_t *inendpt, ui
         interfaces++;
     }
     libusb_free_config_descriptor(config);
+    return 0;
 }
 
 static void IntrOut_cb(struct libusb_transfer *transfer)
