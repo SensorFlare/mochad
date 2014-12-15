@@ -13,6 +13,9 @@ AC_PROG_MAKE_SET
 
 # Checks for libraries.
 AC_SEARCH_LIBS([libusb_init],[usb-1.0])
+AC_SEARCH_LIBS([amqp_new_connection],[rabbitmq])
+AC_SEARCH_LIBS([cfg_init],[confuse])
+AC_SEARCH_LIBS([pthread_create],[pthread])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h netinet/in.h stdlib.h string.h sys/socket.h syslog.h unistd.h])
