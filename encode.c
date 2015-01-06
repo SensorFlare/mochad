@@ -90,8 +90,8 @@
 
 static void strupper(char *buf) {
     while (*buf) {
-        if (islower(*buf)) *buf = toupper(*buf);
-        buf++;
+	if (islower(*buf)) *buf = toupper(*buf);
+	buf++;
     }
 }
 
@@ -101,13 +101,13 @@ static int gethexdata(unsigned char buf8[]) {
     unsigned char *endbuf = buf8 + 8;
 
     while ((parm = strtok(NULL, " ")) && (ptr < endbuf)) {
-        dbprintf("parm %s\n", parm);
-        errno = 0;
-        *ptr++ = (unsigned char) strtoul(parm, NULL, 16);
-        if (errno) {
-            dbprintf("Hex digit conversion problem %d\n", errno);
-            return -1;
-        }
+	dbprintf("parm %s\n", parm);
+	errno = 0;
+	*ptr++ = (unsigned char) strtoul(parm, NULL, 16);
+	if (errno) {
+	    dbprintf("Hex digit conversion problem %d\n", errno);
+	    return -1;
+	}
     }
     return (ptr - buf8);
 }
@@ -196,9 +196,9 @@ static int getfunc(void) {
     command = strtok(NULL, " ");
     if (!command) return -1;
     for (i = 0; i < (sizeof (funccommands) / sizeof (funccommands[0])); i++) {
-        if (strcmp(command, funccommands[i]) == 0) {
-            return i;
-        }
+	if (strcmp(command, funccommands[i]) == 0) {
+	    return i;
+	}
     }
     return -1;
 }
@@ -245,19 +245,19 @@ static int getrffunc(int rf8bitaddr) {
     if (!command) return -1;
 
     if (rf8bitaddr == 1) {
-        for (i = 0; SecRemoteKeyNames8bitaddr[i].name; i++) {
-            if (strcmp(command, SecRemoteKeyNames8bitaddr[i].name) == 0)
-                return SecRemoteKeyNames8bitaddr[i].funct;
-        }
-        return -1;
+	for (i = 0; SecRemoteKeyNames8bitaddr[i].name; i++) {
+	    if (strcmp(command, SecRemoteKeyNames8bitaddr[i].name) == 0)
+		return SecRemoteKeyNames8bitaddr[i].funct;
+	}
+	return -1;
     } else if (rf8bitaddr == 0) {
-        for (i = 0; SecEventNameslongaddr[i].name; i++) {
-            if (strcmp(command, SecEventNameslongaddr[i].name) == 0)
-                return SecEventNameslongaddr[i].funct;
-        }
-        return -1;
+	for (i = 0; SecEventNameslongaddr[i].name; i++) {
+	    if (strcmp(command, SecEventNameslongaddr[i].name) == 0)
+		return SecEventNameslongaddr[i].funct;
+	}
+	return -1;
     } else
-        return -1;
+	return -1;
 }
 
 static int getparam(void) {
@@ -303,14 +303,14 @@ static int getdeviceaddr(int *unit) {
 
     c = *parm++;
     if (!isdigit(c)) {
-        (*unit)--;
-        dbprintf("*unit %d\n", *unit);
-        return house;
+	(*unit)--;
+	dbprintf("*unit %d\n", *unit);
+	return house;
     }
     *unit = (*unit * 10) + (c - '0');
     if (*unit > 16) {
-        *unit = -1;
-        return house;
+	*unit = -1;
+	return house;
     }
     (*unit)--;
     return house;
@@ -325,9 +325,9 @@ static int getrfaddr(unsigned long *rfaddr) {
     dbprintf("rfaddr %s\n", parm);
 
     if ((strncmp(parm, "0x", 2) == 0) || (strncmp(parm, "0X", 2) == 0)) {
-        /* 8 bit RF address starts with 0x or 0X */
-        *rfaddr = strtoul(parm + 2, NULL, 16);
-        return 1;
+	/* 8 bit RF address starts with 0x or 0X */
+	*rfaddr = strtoul(parm + 2, NULL, 16);
+	return 1;
     }
 
     /* Long RF address must be 6 hex digits */
@@ -348,13 +348,13 @@ static unsigned short gethousecodes(void) {
     if (strcmp(parm, "*") == 0) return 0xFFFF;
 
     while ((house = *parm++)) {
-        dbprintf("house %c\n", house);
-        if (ishouse(house)) {
-            house -= 'A';
-            dbprintf("house %d\n", house);
-            rc |= (1 << house);
-            dbprintf("rc %04X\n", rc);
-        }
+	dbprintf("house %c\n", house);
+	if (ishouse(house)) {
+	    house -= 'A';
+	    dbprintf("house %d\n", house);
+	    rc |= (1 << house);
+	    dbprintf("rc %04X\n", rc);
+	}
     }
     return rc;
 }
@@ -390,13 +390,13 @@ static int pl_tx_houseunit(int fd, int house, int unit) {
 
 /* Extended code 1 */
 static int pl_tx_extended_code_1(int fd, int house, int unit, int command,
-        int subcmd, int param) {
+	int subcmd, int param) {
     unsigned char buf[7];
     size_t nbuf;
     unsigned char *xmitptr;
 
     dbprintf("%s(%d,%d,%d,%d,%d,%d)\n", __func__, fd, house, unit, command,
-            subcmd, param);
+	    subcmd, param);
     /* Make buffer as if received so decoder prints */
     buf[0] = 0x00;
     buf[1] = 0x05;
@@ -426,58 +426,58 @@ static int pl_tx_housefunc(int fd, int house, int func, int param) {
     /* Make buffer as if received so decoder prints */
     buf[0] = 0x00;
     switch (func) {
-        case FUNC_DIM:
-        case FUNC_BRIGHT:
-            buf[1] = 0x03;
-            nbuf = 5; /* Decode 5 bytes */
-            buf[2] = 0x02;
-            dims = ((param & 0x1F) << 3);
-            buf[3] = dims | 0x01;
-            buf[4] = x10housecode[house] << 4 | func;
-            xmitptr = &buf[2];
-            cm15a_decode_plc(-1, buf, nbuf);
-            dbprintf("%d:", nbuf);
-            hexdump(buf, nbuf);
+	case FUNC_DIM:
+	case FUNC_BRIGHT:
+	    buf[1] = 0x03;
+	    nbuf = 5; /* Decode 5 bytes */
+	    buf[2] = 0x02;
+	    dims = ((param & 0x1F) << 3);
+	    buf[3] = dims | 0x01;
+	    buf[4] = x10housecode[house] << 4 | func;
+	    xmitptr = &buf[2];
+	    cm15a_decode_plc(-1, buf, nbuf);
+	    dbprintf("%d:", nbuf);
+	    hexdump(buf, nbuf);
 
-            /* Transmit using the 0x06 prefix just like AHP */
-            /* The remaining two bytes are reversed */
-            *xmitptr++ = 0x06;
-            *xmitptr = *(xmitptr + 1);
-            xmitptr++;
-            *xmitptr = 0x06 | dims;
-            hexdump(xmitptr - 2, 3);
-            return x10_write(xmitptr - 2, 3);
-        case FUNC_EXTENDED_DIM:
-            buf[1] = 0x05;
-            buf[2] = 0x07;
-            nbuf = 7; /* Decode 7 bytes */
-            buf[3] = x10housecode[house] << 4 | 0x7;
-            buf[4] = 0x02; /* 2 data bytes follow */
-            dims = param & 0xFF;
-            buf[5] = dims;
-            buf[6] = 0x31; /* Dim/Bright */
-            xmitptr = &buf[2];
-            cm15a_decode_plc(-1, buf, nbuf);
-            dbprintf("%d:", nbuf);
-            hexdump(buf, nbuf);
+	    /* Transmit using the 0x06 prefix just like AHP */
+	    /* The remaining two bytes are reversed */
+	    *xmitptr++ = 0x06;
+	    *xmitptr = *(xmitptr + 1);
+	    xmitptr++;
+	    *xmitptr = 0x06 | dims;
+	    hexdump(xmitptr - 2, 3);
+	    return x10_write(xmitptr - 2, 3);
+	case FUNC_EXTENDED_DIM:
+	    buf[1] = 0x05;
+	    buf[2] = 0x07;
+	    nbuf = 7; /* Decode 7 bytes */
+	    buf[3] = x10housecode[house] << 4 | 0x7;
+	    buf[4] = 0x02; /* 2 data bytes follow */
+	    dims = param & 0xFF;
+	    buf[5] = dims;
+	    buf[6] = 0x31; /* Dim/Bright */
+	    xmitptr = &buf[2];
+	    cm15a_decode_plc(-1, buf, nbuf);
+	    dbprintf("%d:", nbuf);
+	    hexdump(buf, nbuf);
 
-            /* Transmit only requires last 5 bytes */
-            hexdump(xmitptr, 5);
-            return x10_write(xmitptr, 5);
-        default:
-            buf[1] = 0x02;
-            nbuf = 4; /* Decode 4 bytes */
-            buf[2] = 0x01;
-            buf[3] = x10housecode[house] << 4 | func;
-            xmitptr = &buf[2];
-            cm15a_decode_plc(-1, buf, nbuf);
-            dbprintf("%d:", nbuf);
-            hexdump(buf, nbuf);
+	    /* Transmit only requires last 5 bytes */
+	    hexdump(xmitptr, 5);
+	    return x10_write(xmitptr, 5);
+	default:
+	    buf[1] = 0x02;
+	    nbuf = 4; /* Decode 4 bytes */
+	    buf[2] = 0x01;
+	    buf[3] = x10housecode[house] << 4 | func;
+	    xmitptr = &buf[2];
+	    cm15a_decode_plc(-1, buf, nbuf);
+	    dbprintf("%d:", nbuf);
+	    hexdump(buf, nbuf);
 
-            /* Transmit only requires last 2 bytes */
-            *xmitptr = 0x06;
-            hexdump(xmitptr, 2);
-            return x10_write(xmitptr, 2);
+	    /* Transmit only requires last 2 bytes */
+	    *xmitptr = 0x06;
+	    hexdump(xmitptr, 2);
+	    return x10_write(xmitptr, 2);
     }
 }
 
@@ -506,30 +506,30 @@ static int rfsec_tx(int fd, int rf8bitaddr, unsigned long rfaddr, int func) {
 
     *p++ = 0xEB;
     if (rf8bitaddr) {
-        *p++ = 0x20;
-        *p++ = rfaddr;
-        *p++ = rfaddr ^ 0x0f;
-        *p++ = func;
-        *p = ~func;
-        cm15a_decode_rf(-1, buf, 6);
-        if (Cm19a)
-            return x10_write(buf + 1, 5);
-        else
-            return x10_write(buf, 6);
+	*p++ = 0x20;
+	*p++ = rfaddr;
+	*p++ = rfaddr ^ 0x0f;
+	*p++ = func;
+	*p = ~func;
+	cm15a_decode_rf(-1, buf, 6);
+	if (Cm19a)
+	    return x10_write(buf + 1, 5);
+	else
+	    return x10_write(buf, 6);
     } else {
-        *p++ = 0x29;
-        addr1 = rfaddr >> 16;
-        *p++ = addr1;
-        *p++ = addr1 ^ 0x0f;
-        *p++ = func;
-        *p++ = ~func;
-        *p++ = rfaddr >> 8;
-        *p = rfaddr;
-        cm15a_decode_rf(-1, buf, 8);
-        if (Cm19a)
-            return x10_write(buf + 1, 7);
-        else
-            return x10_write(buf, 8);
+	*p++ = 0x29;
+	addr1 = rfaddr >> 16;
+	*p++ = addr1;
+	*p++ = addr1 ^ 0x0f;
+	*p++ = func;
+	*p++ = ~func;
+	*p++ = rfaddr >> 8;
+	*p = rfaddr;
+	cm15a_decode_rf(-1, buf, 8);
+	if (Cm19a)
+	    return x10_write(buf + 1, 7);
+	else
+	    return x10_write(buf, 8);
     }
 }
 
@@ -555,41 +555,41 @@ static int rf_tx_houseunitfunc(int fd, int house, int unit, int func) {
 
     buf[4] = 0;
     switch (func) {
-            /* X10 standard RF */
-        case FUNC_OFF:
-            buf[4] = 1 << 5; // 1=OFF, 0=ON
-            /* fall through */
-        case FUNC_ON:
-            if (unit < 0) return -1;
-            buf[4] |= (unit4 << 4) | (unit2 << 2) | (unit1 << 4);
-            break;
-        case FUNC_DIM:
-            buf[4] = 0x98;
-            break;
-        case FUNC_BRIGHT:
-            buf[4] = 0x88;
-            break;
-            /* X10 SECURITY RF */
-        default:
-            dbprintf("Invalid function\n");
-            return -1;
+	    /* X10 standard RF */
+	case FUNC_OFF:
+	    buf[4] = 1 << 5; // 1=OFF, 0=ON
+	    /* fall through */
+	case FUNC_ON:
+	    if (unit < 0) return -1;
+	    buf[4] |= (unit4 << 4) | (unit2 << 2) | (unit1 << 4);
+	    break;
+	case FUNC_DIM:
+	    buf[4] = 0x98;
+	    break;
+	case FUNC_BRIGHT:
+	    buf[4] = 0x88;
+	    break;
+	    /* X10 SECURITY RF */
+	default:
+	    dbprintf("Invalid function\n");
+	    return -1;
     }
     buf[3] = ~buf[2]; // add check bytes
     buf[5] = ~buf[4];
 
     cm15a_decode_rf(-1, buf, sizeof (buf));
     if (Cm19a)
-        return x10_write(buf + 1, sizeof (buf) - 1);
+	return x10_write(buf + 1, sizeof (buf) - 1);
     else
-        return x10_write(buf, sizeof (buf));
+	return x10_write(buf, sizeof (buf));
 }
 
 static const char DOMAINPOLICY[] =
-        "<?xml version=\"1.0\"?>"
-        "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.adobe.com/xml/dtds/cross-domain-policy.dtd\">"
-        "<cross-domain-policy>"
-        "<allow-access-from domain=\"*.chumby.com\" to-ports=\"1100\" />"
-        "</cross-domain-policy>";
+	"<?xml version=\"1.0\"?>"
+	"<!DOCTYPE cross-domain-policy SYSTEM \"http://www.adobe.com/xml/dtds/cross-domain-policy.dtd\">"
+	"<cross-domain-policy>"
+	"<allow-access-from domain=\"*.chumby.com\" to-ports=\"1100\" />"
+	"</cross-domain-policy>";
 
 /* aLine looks something like the following
  * pl a1 on
@@ -609,174 +609,184 @@ int processcommandline(int fd, char *aLine) {
     printf("%s\n", aLine);
     dbprintf("%lu:%s\n", (unsigned long) strlen(aLine), aLine);
     if (strcmp(aLine, "<POLICY-FILE-REQUEST/>") == 0) {
-        /* Yes, this sends the '\0' terminator which is required. */
-        send(fd, DOMAINPOLICY, sizeof (DOMAINPOLICY), MSG_NOSIGNAL);
-        return 0;
+	/* Yes, this sends the '\0' terminator which is required. */
+	send(fd, DOMAINPOLICY, sizeof (DOMAINPOLICY), MSG_NOSIGNAL);
+	return 0;
     }
     command = strtok(aLine, " ");
     if (command) {
-        if (strcmp(command, "PL") == 0) {
-            if (or20client(fd)) statusprintf(fd, "ok\n");
-            house = getdeviceaddr(&unit);
-            dbprintf("house %d unit %d\n", house, unit);
-            if (house < 0) return -1;
-            if (unit < 0) {
-                /* Unit code is 0 but house code != 0 */
-                func = getfunc();
-                if (func < 0 || func == FUNC_EXTENDED_DIM) return -1;
-                if (func == FUNC_DIM || func == FUNC_BRIGHT) {
-                    param = getparam();
-                    if (param == -1) param = 1;
-                    pl_tx_housefunc(fd, house, func, param);
-                } else
-                    pl_tx_housefunc(fd, house, func, 0);
-            } else {
-                func = getfunc();
-                if (func < 0) {
-                    pl_tx_houseunit(fd, house, unit);
-                    return -1;
-                }
-                dbprintf("func %d\n", func);
-                if (func == FUNC_EXTENDED_DIM) {
-                    param = getparam();
-                    if (param == -1) param = 1; /* default is 1 dim */
-                    pl_tx_extended_code_1(fd, house, unit, 3, 1, param);
-                } else if (func == FUNC_DIM || func == FUNC_BRIGHT) {
-                    param = getparam();
-                    if (param == -1) param = 1;
-                    pl_tx_houseunit(fd, house, unit);
-                    pl_tx_housefunc(fd, house, func, param);
-                } else if (func == FUNC_EXTENDED_CODE_1) {
-                    int command, subcmd, data;
-                    command = getparam();
-                    if (command == -1) command = 0;
-                    subcmd = getparam();
-                    if (subcmd == -1) subcmd = 0;
-                    data = getparam();
-                    if (data == -1) data = 0;
-                    pl_tx_extended_code_1(fd, house, unit, command, subcmd, data);
-                } else {
-                    pl_tx_houseunit(fd, house, unit);
-                    pl_tx_housefunc(fd, house, func, 0);
-                }
-            }
-        } else if (strcmp(command, "RF") == 0) {
-            printf("rf!\n");
-            if (or20client(fd)) statusprintf(fd, "ok\n");
-            printf("blah\n");
-            house = getdeviceaddr(&unit);
-            dbprintf("house %d unit %d\n", house, unit);
-            if (house < 0) return -1;
-            func = getfunc();
-            dbprintf("house %d unit %d %d\n", house, unit, func);
-            if (func < 0) return -1;
-            printf("blah!\n");
-            rf_tx_houseunitfunc(fd, house, unit, func);
-        } else if (strcmp(command, "RFSEC") == 0) {
-            if (or20client(fd)) statusprintf(fd, "ok\n");
-            rfaddr = 0;
-            rf8bitaddr = getrfaddr(&rfaddr);
-            dbprintf("rfaddr 8bit: %d %X\n", rf8bitaddr, rfaddr);
-            if (rf8bitaddr < 0) return -1;
-            func = getrffunc(rf8bitaddr);
-            dbprintf("rf func %X\n", func);
-            if (func < 0) return -1;
-            rfsec_tx(fd, rf8bitaddr, rfaddr, func);
-        } else if (strcmp(command, "RFCAM") == 0) {
-            if (or20client(fd)) statusprintf(fd, "ok\n");
-            /* Unit number is ignored */
-            house = getdeviceaddr(&unit);
-            if (house < 0) return -1;
-            arg1 = strtok(NULL, " ");
-            if (arg1 == NULL || *arg1 == '\0') return -1;
-            dbprintf("rfcam house keyname %d %s\n", house, arg1);
+	if (strcmp(command, "PL") == 0) {
+	    if (or20client(fd)) statusprintf(fd, "ok\n");
+	    house = getdeviceaddr(&unit);
+	    dbprintf("house %d unit %d\n", house, unit);
+	    if (house < 0) return -1;
+	    if (unit < 0) {
+		/* Unit code is 0 but house code != 0 */
+		func = getfunc();
+		if (func < 0 || func == FUNC_EXTENDED_DIM) return -1;
+		if (func == FUNC_DIM || func == FUNC_BRIGHT) {
+		    param = getparam();
+		    if (param == -1) param = 1;
+		    pl_tx_housefunc(fd, house, func, param);
+		} else
+		    pl_tx_housefunc(fd, house, func, 0);
+	    } else {
+		func = getfunc();
+		if (func < 0) {
+		    pl_tx_houseunit(fd, house, unit);
+		    return -1;
+		}
+		dbprintf("func %d\n", func);
+		if (func == FUNC_EXTENDED_DIM) {
+		    param = getparam();
+		    if (param == -1) param = 1; /* default is 1 dim */
+		    pl_tx_extended_code_1(fd, house, unit, 3, 1, param);
+		} else if (func == FUNC_DIM || func == FUNC_BRIGHT) {
+		    param = getparam();
+		    if (param == -1) param = 1;
+		    pl_tx_houseunit(fd, house, unit);
+		    pl_tx_housefunc(fd, house, func, param);
+		} else if (func == FUNC_EXTENDED_CODE_1) {
+		    int command, subcmd, data;
+		    command = getparam();
+		    if (command == -1) command = 0;
+		    subcmd = getparam();
+		    if (subcmd == -1) subcmd = 0;
+		    data = getparam();
+		    if (data == -1) data = 0;
+		    pl_tx_extended_code_1(fd, house, unit, command, subcmd, data);
+		} else {
+		    pl_tx_houseunit(fd, house, unit);
+		    pl_tx_housefunc(fd, house, func, 0);
+		}
+	    }
+	} else if (strcmp(command, "RF") == 0) {
+	    printf("rf!\n");
+	    if (or20client(fd)) statusprintf(fd, "ok\n");
+	    printf("blah\n");
+	    house = getdeviceaddr(&unit);
+	    dbprintf("house %d unit %d\n", house, unit);
+	    if (house < 0) return -1;
+	    func = getfunc();
+	    dbprintf("house %d unit %d %d\n", house, unit, func);
+	    if (func < 0) return -1;
+	    printf("blah!\n");
+	    rf_tx_houseunitfunc(fd, house, unit, func);
+	} else if (strcmp(command, "RFSEC") == 0) {
+	    if (or20client(fd)) statusprintf(fd, "ok\n");
+	    rfaddr = 0;
+	    rf8bitaddr = getrfaddr(&rfaddr);
+	    dbprintf("rfaddr 8bit: %d %X\n", rf8bitaddr, rfaddr);
+	    if (rf8bitaddr < 0) return -1;
+	    func = getrffunc(rf8bitaddr);
+	    dbprintf("rf func %X\n", func);
+	    if (func < 0) return -1;
+	    rfsec_tx(fd, rf8bitaddr, rfaddr, func);
+	} else if (strcmp(command, "RFCAM") == 0) {
+	    if (or20client(fd)) statusprintf(fd, "ok\n");
+	    /* Unit number is ignored */
+	    house = getdeviceaddr(&unit);
+	    if (house < 0) return -1;
+	    arg1 = strtok(NULL, " ");
+	    if (arg1 == NULL || *arg1 == '\0') return -1;
+	    dbprintf("rfcam house keyname %d %s\n", house, arg1);
 
-            rfcamkey = findCamRemoteCommand(arg1);
-            if (rfcamkey > 0) {
-                house = x10housecoderf[house] << 4;
-                x10bytes8[0] = 0xeb;
-                x10bytes8[1] = 0x14;
-                x10bytes8[2] = (house + (rfcamkey - 0x2B)) & 0xFF;
-                x10bytes8[3] = rfcamkey;
-                x10bytes8[4] = house;
-                hexdump(x10bytes8, 5);
-                cm15a_decode_rf(-1, x10bytes8, 5);
-                if (Cm19a)
-                    x10_write(x10bytes8 + 1, 4);
-                else
-                    x10_write(x10bytes8, 5);
-            } else {
-                sockprintf(fd, "Invalid command %s\n", arg1);
-            }
-        } else if (strcmp(command, "PT") == 0) {
-            if (or20client(fd)) statusprintf(fd, "ok\n");
-            len = gethexdata(x10bytes8);
-            hexdump(x10bytes8, len);
-            if (len > 0) x10_write(x10bytes8, len);
-        }
+	    rfcamkey = findCamRemoteCommand(arg1);
+	    if (rfcamkey > 0) {
+		house = x10housecoderf[house] << 4;
+		x10bytes8[0] = 0xeb;
+		x10bytes8[1] = 0x14;
+		x10bytes8[2] = (house + (rfcamkey - 0x2B)) & 0xFF;
+		x10bytes8[3] = rfcamkey;
+		x10bytes8[4] = house;
+		hexdump(x10bytes8, 5);
+		cm15a_decode_rf(-1, x10bytes8, 5);
+		if (Cm19a)
+		    x10_write(x10bytes8 + 1, 4);
+		else
+		    x10_write(x10bytes8, 5);
+	    } else {
+		sockprintf(fd, "Invalid command %s\n", arg1);
+	    }
+	} else if (strcmp(command, "PT") == 0) {
+	    if (or20client(fd)) statusprintf(fd, "ok\n");
+	    len = gethexdata(x10bytes8);
+	    hexdump(x10bytes8, len);
+	    if (len > 0) x10_write(x10bytes8, len);
+	}
 #if 0
-            /* Enable/disable the internal RFTOPL repeater */
-            /* This seems to make the device lockup after a while */
-            /* bb 40 51 05  00 14 20 28 */
-        else if (strcmp(command, "RFTOPL") == 0) {
-            unsigned short bitmap16;
-            bitmap16 = gethousecodes();
-            x10_write("\xdb\x1f\xf0", 3);
-            x10_write("\xfb\x20\x00\x02", 4);
-            memcpy(x10bytes8, "\xbb\x00\x00\x05\x00\x14\x20\x28", 8);
-            memcpy(x10bytes8 + 1, &bitmap16, sizeof (bitmap16));
-            x10_write(x10bytes8, 8);
-        } else if (strcmp(command, "CMINIT") == 0) {
-            dbprintf("Disabling internal RF to PL repeater\n");
-            x10_write((unsigned char *) "\x9b\x00\x09\x07\x43\x04\xe0\x03", 8);
-            x10_write((unsigned char *) "\x8b", 1);
-            x10_write((unsigned char *) "\xdb\x1f\xf0", 3);
-            x10_write((unsigned char *) "\xfb\x20\x00\x02", 4);
-            x10_write((unsigned char *) "\xbb\x00\x00\x05\x00\x14\x20\x28", 8);
-        }
+	    /* Enable/disable the internal RFTOPL repeater */
+	    /* This seems to make the device lockup after a while */
+	    /* bb 40 51 05  00 14 20 28 */
+	else if (strcmp(command, "RFTOPL") == 0) {
+	    unsigned short bitmap16;
+	    bitmap16 = gethousecodes();
+	    x10_write("\xdb\x1f\xf0", 3);
+	    x10_write("\xfb\x20\x00\x02", 4);
+	    memcpy(x10bytes8, "\xbb\x00\x00\x05\x00\x14\x20\x28", 8);
+	    memcpy(x10bytes8 + 1, &bitmap16, sizeof (bitmap16));
+	    x10_write(x10bytes8, 8);
+	} else if (strcmp(command, "CMINIT") == 0) {
+	    dbprintf("Disabling internal RF to PL repeater\n");
+	    x10_write((unsigned char *) "\x9b\x00\x09\x07\x43\x04\xe0\x03", 8);
+	    x10_write((unsigned char *) "\x8b", 1);
+	    x10_write((unsigned char *) "\xdb\x1f\xf0", 3);
+	    x10_write((unsigned char *) "\xfb\x20\x00\x02", 4);
+	    x10_write((unsigned char *) "\xbb\x00\x00\x05\x00\x14\x20\x28", 8);
+	}
 #endif
-        else if (strcmp(command, "RFTOPL") == 0) {
-            if (or20client(fd)) statusprintf(fd, "ok\n");
-            RfToPl16 = gethousecodes();
-            sockprintf(fd, "RfToPl %04X\n", RfToPl16);
-        } else if (strcmp(command, "RFTORF") == 0) {
-            if (or20client(fd)) statusprintf(fd, "ok\n");
-            arg1 = strtok(NULL, " ");
-            if (arg1) RfToRf16 = (unsigned short) strtoul(arg1, NULL, 10);
-            sockprintf(fd, "RfToRf %04X\n", RfToRf16);
-        } else if (strcmp(command, "ST") == 0) {
-            arg1 = strtok(NULL, " ");
-            dbprintf("st arg1 %s\n", arg1);
-            if (arg1 && (strcmp(arg1, "0") == 0))
-                hua_sec_init();
-            else
-                hua_show(fd);
-        } else if (strcmp(command, "GETSTATUS") == 0) {
-            house = getdeviceaddr(&unit);
-            if ((house >= 0) && (unit >= 0)) {
-                arg1 = strtok(NULL, " ");
-                if (arg1) {
-                    if (strcmp(arg1, "XDIM") == 0) { /* getstatus a1 xdim */
-                        statusprintf(fd, "%d\n", hua_getstatus_xdim(house, unit));
-                    } else { /* getstatus a1 ? */
-                        statusprintf(fd, "-1\n");
-                    }
-                } else { /* getstatus a1 */
-                    statusprintf(fd, "%s\n",
-                            (hua_getstatus(house, unit) == '1') ? "on" : "off");
-                }
-            } else
-                return -1;
-        } else if (strcmp(command, "GETSTATUSSEC") == 0) {
-            rfaddr = 0;
-            rf8bitaddr = getrfaddr(&rfaddr);
-            if (rf8bitaddr < 0) return -1;
-            statusprintf(fd, "%s\n",
-                    (hua_getstatus_sec(rf8bitaddr, rfaddr) == 1) ? "on" : "off");
-        } else {
-            dbprintf("Unknown command: %s\n", command);
-            return -1;
-        }
+	else if (strcmp(command, "RFTOPL") == 0) {
+	    if (or20client(fd)) statusprintf(fd, "ok\n");
+	    RfToPl16 = gethousecodes();
+	    sockprintf(fd, "RfToPl %04X\n", RfToPl16);
+	} else if (strcmp(command, "RFTORF") == 0) {
+	    if (or20client(fd)) statusprintf(fd, "ok\n");
+	    arg1 = strtok(NULL, " ");
+	    if (arg1) RfToRf16 = (unsigned short) strtoul(arg1, NULL, 10);
+	    sockprintf(fd, "RfToRf %04X\n", RfToRf16);
+	} else if (strcmp(command, "ST") == 0) {
+	    arg1 = strtok(NULL, " ");
+	    dbprintf("st arg1 %s\n", arg1);
+	    if (arg1 && (strcmp(arg1, "0") == 0))
+		hua_sec_init();
+	    else
+		hua_show(fd);
+	} else if (strcmp(command, "GETSTATUS") == 0) {
+	    house = getdeviceaddr(&unit);
+	    if ((house >= 0) && (unit >= 0)) {
+		arg1 = strtok(NULL, " ");
+		if (arg1) {
+		    if (strcmp(arg1, "XDIM") == 0) { /* getstatus a1 xdim */
+			int status = hua_getstatus_xdim(house, unit);
+			statusprintf(fd, "%d\n", status);
+			char sensoflare_message[10];
+			sprintf(sensoflare_message, "%c%d %d\n", 65 + house, 1 + unit, status);
+			sendMessage(sensoflare_message);
+		    } else { /* getstatus a1 ? */
+			statusprintf(fd, "-1\n");
+			char sensoflare_message[10];
+			sprintf(sensoflare_message, "%c%d -1\n", 65 + house, 1 + unit);
+			sendMessage(sensoflare_message);
+		    }
+		} else { /* getstatus a1 */
+		    statusprintf(fd, "%s\n",
+			    (hua_getstatus(house, unit) == '1') ? "on" : "off");
+		    char sensoflare_message[10];
+		    sprintf(sensoflare_message, "%c%d %s\n", 65 + house, 1 + unit, (hua_getstatus(house, unit) == '1') ? "on" : "off");
+		    sendMessage(sensoflare_message);
+		}
+	    } else
+		return -1;
+	} else if (strcmp(command, "GETSTATUSSEC") == 0) {
+	    rfaddr = 0;
+	    rf8bitaddr = getrfaddr(&rfaddr);
+	    if (rf8bitaddr < 0) return -1;
+	    statusprintf(fd, "%s\n",
+		    (hua_getstatus_sec(rf8bitaddr, rfaddr) == 1) ? "on" : "off");
+	} else {
+	    dbprintf("Unknown command: %s\n", command);
+	    return -1;
+	}
     }
     return 0;
 }
@@ -801,17 +811,17 @@ void cm15a_encode(int fd, unsigned char * buf, size_t buflen) {
      */
     remptr = remainder + remlen;
     while (buflen--) {
-        *remptr = *buf;
-        if ((*remptr == '\n') || (*remptr == '\r') || (*remptr == '\0')) {
-            *remptr = '\0';
-            if (strlen(remainder)) {
-                processcommandline(fd, remainder);
-                if (or20client(fd)) del_client(fd);
-            }
-            remptr = remainder;
-        } else
-            remptr++;
-        buf++;
+	*remptr = *buf;
+	if ((*remptr == '\n') || (*remptr == '\r') || (*remptr == '\0')) {
+	    *remptr = '\0';
+	    if (strlen(remainder)) {
+		processcommandline(fd, remainder);
+		if (or20client(fd)) del_client(fd);
+	    }
+	    remptr = remainder;
+	} else
+	    remptr++;
+	buf++;
     }
     remlen = remptr - remainder;
 }

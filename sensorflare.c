@@ -188,8 +188,8 @@ void * receiver(void *threadid) {
         syslog(LOG_INFO, "%s", (char *) envelope.message.body.bytes);
 
         memcpy(buf, envelope.message.body.bytes, envelope.message.body.len);
-        buf[envelope.message.body.len] = '\0';
         sprintf(buf, "%s", (char *) envelope.message.body.bytes);
+        buf[envelope.message.body.len] = '\0';
         printf("%s", buf);
         processcommandline(NULL, buf);
 
@@ -237,7 +237,6 @@ void * receiver(void *threadid) {
 void init_sensorflare(void) {
 
     cfg_opt_t opts[] = {
-        CFG_STR("vhost", "vhost", CFGF_NONE),
         CFG_STR("password", "password", CFGF_NONE),
         CFG_STR("username", "username", CFGF_NONE),
         CFG_END()
@@ -252,8 +251,7 @@ void init_sensorflare(void) {
 
     char * username = cfg_getstr(cfg, "username");
     char * password = cfg_getstr(cfg, "password");
-    char * vhost = cfg_getstr(cfg, "vhost");
-
+    
     sprintf(exchange, "mochad-%s-send", username);
     sprintf(commands_queue, "mochad-%s-commands", username);
     syslog(LOG_INFO, "send exchange : %s", exchange);

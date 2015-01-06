@@ -26,6 +26,7 @@
 #include "global.h"
 #include "x10state.h"
 #include "decode.h"
+#include "sensorflare.h"
 
 /* 16 house codes and 16 unit codes = 256 devices
  * For normal (non-security) X10 devices.
@@ -309,6 +310,7 @@ void hua_show(int fd)
         if (labeldone) {
             strcat(buf, "\n");
             sockprintf(fd, buf, strlen(buf));
+	    sendMessage(buf);
         }
     }
     
@@ -331,6 +333,7 @@ void hua_show(int fd)
         if (labeldone) {
             strcat(buf, "\n");
             sockprintf(fd, buf, strlen(buf));
+	    sendMessage(buf);
         }
     }
     sockprintf(fd, "Security sensor status\n");
@@ -347,6 +350,7 @@ void hua_show(int fd)
             message = findSecRemoteKeyName(sen->sensorstatus);
         else
             message = findSecEventName(sen->sensorstatus);
+	sendMessage(message);
         sockprintf(fd, "Sensor addr: %06X Last: %02d:%02d %s \n", sen->secaddr,
                 mins, deltat, message);
     }
