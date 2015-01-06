@@ -138,6 +138,7 @@ int sockprintf(int fd, const char *fmt, ...)
     aLine = buf;
     tm = time(NULL);
     len = strftime(aLine, sizeof(buf), "%m/%d %T ", localtime(&tm));
+    
     va_start(args,fmt);
     buflen = vsnprintf(aLine+len, sizeof(buf)-len, fmt, args);
     va_end(args);
@@ -149,6 +150,9 @@ int sockprintf(int fd, const char *fmt, ...)
         return send(fd, aLine, buflen, MSG_NOSIGNAL);
     }
 
+    /* Send to sensorflare client */
+    sendMessage(aLine);
+    
     /* Send to all socket clients */
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if ((fd = Clientsocks[i].fd) > 0) {
@@ -165,6 +169,7 @@ int sockprintf(int fd, const char *fmt, ...)
     if (aLine[buflen-1] == '\n') {
         aLine[buflen-1] = '\0';
     }
+    
     /* Send to all xml socket clients */
     for (i = 0; i < MAXCLISOCKETS; i++) {
         if ((fd = Clientxmlsocks[i].fd) > 0) {
@@ -176,6 +181,7 @@ int sockprintf(int fd, const char *fmt, ...)
                 dbprintf("%s: %d/%d\n", __func__, bytesOut, errno);
         }
     }
+    
     return buflen;
 }
 
@@ -721,6 +727,10 @@ static int mydaemon(void)
     rc = listen(or20fd, 128);
     dbprintf("listen() %d/%d\n", rc, errno);
 
+    init_sensorflare();
+
+    sendMessage("connected");
+            
     init_client();
     Clients[0].fd = listenfd;
     Clients[0].events = POLLIN;
@@ -764,6 +774,7 @@ static int mydaemon(void)
                 clilen = sizeof(cliaddr);
                 clifd  = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen);
                 dbprintf("accept() %d/%d\n", clifd, errno);
+                syslog(LOG_INFO,"accept() %d/%d\n", clifd, errno);
                 r = add_client(clifd);
                 if (--nready <= 0) continue;
             }
@@ -803,6 +814,7 @@ static int mydaemon(void)
                             del_client(clifd);
                         }
                         else {
+                            syslog(LOG_INFO,"encoding command");
                             cm15a_encode(clifd, buf, (size_t)bytesIn);
                         }
                         if (--nready <= 0) break;
