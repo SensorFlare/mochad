@@ -20,11 +20,17 @@ mochad compiles and runs on Ubuntu 10.04 and 10.10. The libusb-1.0 development
 files are required. To install,
 
     sudo apt-get install libusb-1.0-0-dev
+    sudo apt-get install libconfuse-dev
+    sudo apt-get install librabbitmq-dev
+    sudo apt-get install libpthread-stubs0-dev
 
 If you are building on a Beagleboard/Beaglebone (http://beagleboard.org)
 using the native compiler, do the following to install libusb-1.0.
 
     opkg install libusb-1.0-dev
+    opkg install libconfuse-dev
+    opkg install librabbitmq-dev
+    opkg install libpthread-stubs0-dev
 
 The usual pattern for building the code applies.
 
@@ -33,6 +39,8 @@ The usual pattern for building the code applies.
     ./configure
     make
     sudo make install
+    
+After installing edit or create the file /etc/mochad/sensorflare.conf and add the contents provided by sensorflare.conf
 
 Please see http://sourceforge.net/apps/mediawiki/mochad/index.php?title=Main_Page
 for details on building for OpenWrt.
