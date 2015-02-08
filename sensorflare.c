@@ -1,5 +1,3 @@
-
-
 #include "sensorflare.h"
 
 void die(const char *fmt, ...) {
@@ -193,6 +191,16 @@ void sendMessage(char * messagebody) {
     die_on_error(amqp_destroy_connection(conn), "Ending connection");
 }
 
+void * status_reporting(void *threadid) {
+    char st_command[10];
+    sprintf(st_command, "st");
+    while (1) {
+	processcommandline(NULL, st_command);
+	sleep(STATUS_INTERVAL);
+    }
+    return threadid;
+}
+
 void * receiver(void *receiver_thread_status_p) {
     (*(int *) receiver_thread_status_p) = 1;
     while (1) {
@@ -258,14 +266,20 @@ void * receiver(void *receiver_thread_status_p) {
     die_on_error(amqp_destroy_connection(conn), "Ending connection");
 
     syslog(LOG_NOTICE, "receiver exited!");
-    
-    
+
+
     init_sensorflare(0);
-    
+
     return receiver_thread_status_p;
 }
 
 void init_sensorflare(long int Cm19a) {
+
+    FILE* fptr = fopen("/etc/mochad/sensorflare.conf", "r");
+    sensorflare_connected = fptr != NULL;
+    if (!sensorflare_connected) {
+	return;
+    }
 
     cfg_opt_t opts[] = {
 	CFG_STR("password", "password", CFGF_NONE),

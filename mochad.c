@@ -729,8 +729,10 @@ static int mydaemon(void)
 
     init_sensorflare(Cm19a);
 
-    sendMessage("connected");
-            
+    char connectedMessage[30];
+    sprintf(connectedMessage,"Connected %s\n",Cm19a?"CM19A":"CM15A");
+    sendMessage(connectedMessage);
+    
     init_client();
     Clients[0].fd = listenfd;
     Clients[0].events = POLLIN;

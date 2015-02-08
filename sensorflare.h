@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include <ctype.h>
 
@@ -24,6 +25,11 @@
 
 //#include <encode.h>
 
+#define false 0
+#define true 1
+typedef int bool; // or #define bool int
+
+#define STATUS_INTERVAL 60
 
 void die(const char *fmt, ...);
 void die_on_error(int x, char const *context);
@@ -39,6 +45,7 @@ amqp_connection_state_t conn;
 char * username;
 char * password;
 
+void * status_reporting(void *);
 void * receiver(void *threadid);
 void sendMessage(char * messageBody);
 void init_sensorflare(long int);
@@ -46,5 +53,6 @@ void init_sensorflare(long int);
 pthread_t rabbit_receiver_thread;
     
 char exchange[20];
-char commands_queue[20];    
+char commands_queue[20];
+bool sensorflare_connected;
 #endif
