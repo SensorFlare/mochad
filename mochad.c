@@ -727,7 +727,7 @@ static int mydaemon(void)
     rc = listen(or20fd, 128);
     dbprintf("listen() %d/%d\n", rc, errno);
 
-    init_sensorflare();
+    init_sensorflare(Cm19a);
 
     sendMessage("connected");
             

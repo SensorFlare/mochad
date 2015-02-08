@@ -31,14 +31,20 @@ void die_on_amqp_error(amqp_rpc_reply_t x, char const *context);
 void microsleep(int usec);
 void amqp_dump(void const *buffer, size_t len);
 
+
+int receiver_thread_status;
+
 amqp_socket_t *rabbit_socket;
 amqp_connection_state_t conn;
-
+char * username;
+char * password;
 
 void * receiver(void *threadid);
 void sendMessage(char * messageBody);
-void init_sensorflare(void);
+void init_sensorflare(long int);
 
+pthread_t rabbit_receiver_thread;
+    
 char exchange[20];
 char commands_queue[20];    
 #endif
